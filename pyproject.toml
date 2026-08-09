@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "wajub"
-version = "1.1.0"
+version = "1.1.1"
 description = "Official Wajub Python SDK — server-side payments, webhooks, and merchant API"
 readme = "README.md"
 license = "MIT"
