@@ -24,9 +24,6 @@ class PaymentsResource(BaseClient):
             )
         return self._to_payment_object(self.post("/payments", params, options))
 
-    def initialize(self, params: dict[str, Any], options: RequestOptions | None = None) -> Payment:
-        return self.create(params, options)
-
     def retrieve(self, id: str) -> Payment:
         return Payment.from_dict(pick_resource(self.get(f"/payments/{id}"), "transaction"))
 

@@ -34,24 +34,6 @@ def test_payments_create_unwraps_transaction_and_urls() -> None:
     assert payment["authorization_url"] == "https://checkout.test/pay/pay_123"
 
 
-def test_payments_initialize_is_alias_for_create() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(
-            200,
-            json={
-                "transaction": {"id": "pay_456"},
-                "authorization_url": "https://checkout.test/pay/pay_456",
-            },
-        )
-
-    payments = PaymentsResource(
-        API_KEY, API_URL, client=make_client(httpx.MockTransport(handler))
-    )
-    payment = payments.initialize({"amount": 1000, "currency": "XAF"})
-    assert payment.id == "pay_456"
-    assert payment["id"] == "pay_456"
-
-
 def test_payments_retrieve() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(200, json={"transaction": {"id": "pay_789", "status": "succeeded"}})
