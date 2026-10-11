@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "wajub"
-version = "1.2.0"
+version = "1.2.1"
 description = "Official Wajub Python SDK — server-side payments, webhooks, and merchant API"
 readme = "README.md"
 license = "MIT"
@@ -28,6 +28,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+    "hatchling>=1.24",
     "pytest>=8.0",
     "ruff>=0.9",
 ]
@@ -41,8 +42,16 @@ Issues = "https://github.com/wajubhq/wajub-python/issues"
 [tool.hatch.build.targets.wheel]
 packages = ["src/wajub"]
 
+# `python -m build` builds the wheel from the sdist, so whatever is missing here
+# is missing from the wheel too. 1.1.0 and 1.1.1 listed only the py.typed marker
+# and went to PyPI without a single module.
 [tool.hatch.build.targets.sdist]
-include = ["src/wajub/py.typed"]
+include = [
+    "/src",
+    "/tests",
+    "/examples",
+    "/CHANGELOG.md",
+]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
