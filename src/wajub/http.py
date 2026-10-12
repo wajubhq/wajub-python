@@ -14,7 +14,14 @@ from wajub.http_utils import (
     normalize_api_key,
 )
 from wajub.request_options import RequestOptions
-from wajub.retry import MAX_RETRIES, delay_seconds, parse_retry_after, should_retry_status
+from wajub.retry import (
+    MAX_RETRIES,
+    delay_seconds,
+    idempotency_conflict_delay_seconds,
+    is_idempotency_key_in_progress,
+    parse_retry_after,
+    should_retry_status,
+)
 
 
 class BaseClient:
@@ -115,6 +122,17 @@ class BaseClient:
             if should_retry_status(response.status_code) and attempt < self.max_network_retries:
                 attempt += 1
                 time.sleep(delay_seconds(attempt, response))
+                continue
+
+            # The same key still being processed: the first request's answer is
+            # coming. Asked again with the same key, the API returns it.
+            if (
+                idempotency_key
+                and is_idempotency_key_in_progress(response.status_code, data)
+                and attempt < self.max_network_retries
+            ):
+                attempt += 1
+                time.sleep(idempotency_conflict_delay_seconds(attempt))
                 continue
 
             raise error_from_response(

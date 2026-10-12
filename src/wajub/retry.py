@@ -29,6 +29,23 @@ def delay_seconds(attempt: int, response: httpx.Response | None = None) -> float
     return base * jitter
 
 
+def is_idempotency_key_in_progress(status: int, body: dict) -> bool:
+    """Whether the API answered the 409 it sends while a request with the same
+    Idempotency-Key is still running (``errors.idempotency_key``).
+
+    A call sent again after a timeout can arrive before the first one has
+    finished: its answer is on the way, so the call is worth repeating with the
+    same key. Every other 409 is a real refusal.
+    """
+    errors = body.get("errors") if isinstance(body, dict) else None
+    return status == 409 and isinstance(errors, dict) and "idempotency_key" in errors
+
+
+def idempotency_conflict_delay_seconds(attempt: int) -> float:
+    """The pause before asking again about a key still being processed: 2, 4, then 8 seconds."""
+    return float(2 ** max(1, attempt))
+
+
 def parse_retry_after(response: httpx.Response) -> int | None:
     header = response.headers.get("Retry-After", "").strip()
     if not header:

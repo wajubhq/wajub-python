@@ -18,17 +18,23 @@ class Webhooks:
     def construct_event(
         self,
         payload: str | bytes,
-        signature: str,
-        timestamp: str,
+        signature: str | None,
+        timestamp: str | None,
         tolerance: int = DEFAULT_TOLERANCE_SECONDS,
     ) -> dict:
         """Verify the signature and timestamp of an inbound webhook and return the decoded event.
 
         A tolerance of 0 or less uses the default 300s window; there is no way to disable
-        replay protection.
+        replay protection. A missing signature or timestamp header (``None``) raises
+        WebhookSignatureVerificationError, like a wrong one.
         """
         if not self.secret:
             raise ValueError("Wajub: webhook_secret is required for webhooks.construct_event()")
+
+        if not signature or not timestamp:
+            raise WebhookSignatureVerificationError(
+                "Missing X-Wajub-Signature or X-Wajub-Timestamp header."
+            )
 
         if not signature.startswith("v1="):
             raise WebhookSignatureVerificationError(

@@ -46,3 +46,14 @@ def test_construct_event_rejects_timestamp_outside_tolerance() -> None:
 def test_construct_event_requires_webhook_secret() -> None:
     with pytest.raises(ValueError, match="webhook_secret"):
         Webhooks("").construct_event("{}", "v1=abc", str(int(time.time())))
+
+
+@pytest.mark.parametrize(
+    ("signature", "timestamp"),
+    [(None, "1760000000"), ("v1=deadbeef", None), ("", "1760000000")],
+)
+def test_construct_event_answers_a_missing_header_with_a_signature_error(
+    signature, timestamp
+) -> None:
+    with pytest.raises(WebhookSignatureVerificationError, match="Missing X-Wajub-Signature"):
+        Webhooks(SECRET).construct_event('{"event":"payment.succeeded"}', signature, timestamp)
