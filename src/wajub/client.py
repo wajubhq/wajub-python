@@ -8,7 +8,6 @@ from typing import Any
 
 import httpx
 
-from wajub.version import __version__
 from wajub.http_utils import API_URL, normalize_api_key
 from wajub.resources import (
     AccountsResource,
@@ -29,6 +28,7 @@ from wajub.resources import (
     TransfersResource,
     WebhookEndpointsResource,
 )
+from wajub.version import __version__
 from wajub.webhooks import Webhooks
 
 
@@ -82,12 +82,16 @@ class Wajub:
         self.customers = CustomersResource(key, base_url, prefix, self._http, max_network_retries)
         self.refunds = RefundsResource(key, base_url, prefix, self._http, max_network_retries)
         self.transfers = TransfersResource(key, base_url, prefix, self._http, max_network_retries)
-        self.beneficiaries = BeneficiariesResource(key, base_url, prefix, self._http, max_network_retries)
+        self.beneficiaries = BeneficiariesResource(
+            key, base_url, prefix, self._http, max_network_retries
+        )
         self.links = LinksResource(key, base_url, prefix, self._http, max_network_retries)
         self.balance = BalanceResource(key, base_url, prefix, self._http, max_network_retries)
         self.events = EventsResource(key, base_url, prefix, self._http, max_network_retries)
         self.accounts = AccountsResource(key, base_url, prefix, self._http, max_network_retries)
-        self.webhook_endpoints = WebhookEndpointsResource(key, base_url, prefix, self._http, max_network_retries)
+        self.webhook_endpoints = WebhookEndpointsResource(
+            key, base_url, prefix, self._http, max_network_retries
+        )
         self.invoices = InvoicesResource(key, base_url, prefix, self._http, max_network_retries)
         self.disputes = DisputesResource(key, base_url, prefix, self._http, max_network_retries)
         self.identity = IdentityResource(key, base_url, prefix, self._http, max_network_retries)

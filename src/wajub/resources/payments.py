@@ -27,19 +27,25 @@ class PaymentsResource(BaseClient):
             pick_resource(self.request("DELETE", f"/payments/{id}", options=options), "transaction")
         )
 
-    def process(self, id: str, params: dict[str, Any], options: RequestOptions | None = None) -> Payment:
+    def process(
+        self, id: str, params: dict[str, Any], options: RequestOptions | None = None
+    ) -> Payment:
         body, options = idempotency_key_from_params(params, options)
         return Payment.from_dict(
             pick_resource(self.post(f"/payments/{id}", body, options), "transaction")
         )
 
-    def process_split(self, id: str, params: dict[str, Any], options: RequestOptions | None = None) -> Payment:
+    def process_split(
+        self, id: str, params: dict[str, Any], options: RequestOptions | None = None
+    ) -> Payment:
         body, options = idempotency_key_from_params(params, options)
         return Payment.from_dict(
             pick_resource(self.post(f"/payments/{id}/splits", body, options), "transaction")
         )
 
-    def list_refunds(self, id: str, params: dict[str, Any] | None = None) -> tuple[list, dict | None]:
+    def list_refunds(
+        self, id: str, params: dict[str, Any] | None = None
+    ) -> tuple[list, dict | None]:
         return pick_list(self.get(f"/payments/{id}/refunds", params), "refunds")
 
     def _to_payment_object(self, body: dict) -> Payment:

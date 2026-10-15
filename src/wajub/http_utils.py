@@ -17,7 +17,6 @@ from wajub.errors import (
 )
 from wajub.request_options import RequestOptions
 
-
 API_URL = "https://api.wajub.com"
 
 
@@ -96,7 +95,9 @@ def pick_list(body: dict, *keys: str) -> tuple[list, dict | None]:
 
 
 def error_from_response(status: int, body: dict, retry_after: int | None = None) -> WajubError:
-    message = body.get("message") if isinstance(body.get("message"), str) else f"Request failed ({status})"
+    message = body.get("message")
+    if not isinstance(message, str):
+        message = f"Request failed ({status})"
     code = body.get("error_code") or body.get("code") or f"http_{status}"
     if not isinstance(code, str):
         code = f"http_{status}"

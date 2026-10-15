@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Type
+from typing import Any
 
 import httpx
 
@@ -23,7 +23,7 @@ class CrudResource(BaseClient):
         plural: str,
         idempotency_key_prefix: str = "wajub",
         client: httpx.Client | None = None,
-        object_class: Type[ApiObject] = ApiObject,
+        object_class: type[ApiObject] = ApiObject,
         max_network_retries: int | None = None,
     ) -> None:
         super().__init__(api_key, base_url, idempotency_key_prefix, client, max_network_retries)
@@ -44,7 +44,9 @@ class CrudResource(BaseClient):
     def list(self, params: dict[str, Any] | None = None) -> PagedResult:
         return create_paged_list(self, f"/{self._path}", self._plural, params)
 
-    def update(self, id: str, params: dict[str, Any], options: RequestOptions | None = None) -> ApiObject:
+    def update(
+        self, id: str, params: dict[str, Any], options: RequestOptions | None = None
+    ) -> ApiObject:
         data = pick_resource(self.put(f"/{self._path}/{id}", params, options), self._singular)
         return self._object_class.from_dict(data)
 

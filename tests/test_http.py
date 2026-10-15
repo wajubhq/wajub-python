@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import httpx
 import pytest
+from helpers import API_KEY, API_URL, make_client
 
 from wajub.errors import WajubError
 from wajub.http import BaseClient
 from wajub.request_options import RequestOptions
-from helpers import API_KEY, API_URL, make_client
 
 
 def test_sends_raw_api_key_in_authorization_header() -> None:

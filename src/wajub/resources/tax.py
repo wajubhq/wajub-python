@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from wajub.http import BaseClient
 from wajub.http_utils import idempotency_key_from_params, pick_list, pick_resource
 from wajub.request_options import RequestOptions
@@ -46,16 +44,22 @@ class TaxResource(BaseClient):
             self.get(f"/tax/registrations/{id}"), "registration", "tax_registration"
         )
 
-    def update_registration(self, id: str, params: dict, options: RequestOptions | None = None) -> dict:
+    def update_registration(
+        self, id: str, params: dict, options: RequestOptions | None = None
+    ) -> dict:
         return pick_resource(
-            self.put(f"/tax/registrations/{id}", params, options), "registration", "tax_registration"
+            self.put(f"/tax/registrations/{id}", params, options),
+            "registration",
+            "tax_registration",
         )
 
     def delete_registration(self, id: str, options: RequestOptions | None = None) -> None:
         self.request("DELETE", f"/tax/registrations/{id}", options=options)
 
     def jurisdictions(self, params: dict | None = None) -> tuple[list, dict | None]:
-        return pick_list(self.get("/tax/jurisdictions", params), "jurisdictions", "tax_jurisdictions")
+        return pick_list(
+            self.get("/tax/jurisdictions", params), "jurisdictions", "tax_jurisdictions"
+        )
 
     def thresholds(self, params: dict | None = None) -> tuple[list, dict | None]:
         return pick_list(self.get("/tax/thresholds", params), "thresholds", "tax_thresholds")

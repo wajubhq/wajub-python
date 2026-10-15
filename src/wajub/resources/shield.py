@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from wajub.http import BaseClient
 from wajub.http_utils import pick_list, pick_resource
 from wajub.request_options import RequestOptions

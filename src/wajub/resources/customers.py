@@ -26,7 +26,9 @@ class CustomersResource(CrudResource):
             max_network_retries=max_network_retries,
         )
 
-    def block(self, id: str, params: dict | None = None, options: RequestOptions | None = None) -> dict:
+    def block(
+        self, id: str, params: dict | None = None, options: RequestOptions | None = None
+    ) -> dict:
         return pick_resource(self.post(f"/customers/{id}/block", params, options), "customer")
 
     def unblock(self, id: str, options: RequestOptions | None = None) -> dict:
@@ -49,5 +51,7 @@ class CustomersResource(CrudResource):
             self.post(f"/customers/{customer_id}/tax_ids", body, options), "tax_id"
         )
 
-    def delete_tax_id(self, customer_id: str, tax_id: str, options: RequestOptions | None = None) -> None:
+    def delete_tax_id(
+        self, customer_id: str, tax_id: str, options: RequestOptions | None = None
+    ) -> None:
         self.request("DELETE", f"/customers/{customer_id}/tax_ids/{tax_id}", options=options)

@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-import os
-
 import pytest
+from helpers import API_KEY
 
 from wajub import Wajub
-from helpers import API_KEY
 
 
 def test_requires_api_key() -> None:

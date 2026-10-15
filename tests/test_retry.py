@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import httpx
+from helpers import API_KEY, make_client
 
 from wajub.http import BaseClient
 from wajub.http_utils import API_URL
-from helpers import API_KEY, make_client
 
 
 def test_retries_on_503_then_succeeds() -> None:
