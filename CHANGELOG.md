@@ -7,6 +7,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [Unreleased]
+
+### Fixed
+- **`payments.create()` keeps the idempotency key you put in its params.** It
+  removed `idempotencyKey` from your dict, so creating again with the same dict,
+  after a timeout for instance, went out without your key and could create a
+  second payment. Your dict is left as it was, `idempotency_key` in the params
+  counts as your key too, and a key that is not a string, or that differs from
+  the one in `RequestOptions`, raises an error instead of being ignored.
+
 ## [1.2.1] — 2026-10-11
 
 ### Fixed

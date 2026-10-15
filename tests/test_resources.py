@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import httpx
+import pytest
 
 from wajub.objects import Payment
+from wajub.request_options import RequestOptions
 from wajub.resources import PaymentsResource, RefundsResource
 from helpers import API_KEY, API_URL, make_client
 
@@ -32,6 +34,75 @@ def test_payments_create_unwraps_transaction_and_urls() -> None:
     assert payment["id"] == "pay_123"
     assert payment["authorization_token"] == "tok_abc"
     assert payment["authorization_url"] == "https://checkout.test/pay/pay_123"
+
+
+def _capturing_payments(captured: list[httpx.Request]) -> PaymentsResource:
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured.append(request)
+        return httpx.Response(200, json={"transaction": {"id": "pay_1", "status": "pending"}})
+
+    return PaymentsResource(API_KEY, API_URL, client=make_client(httpx.MockTransport(handler)))
+
+
+@pytest.mark.parametrize("name", ["idempotencyKey", "idempotency_key"])
+def test_payments_create_sends_an_idempotency_key_given_in_params(name: str) -> None:
+    captured: list[httpx.Request] = []
+    payments = _capturing_payments(captured)
+    params = {"amount": 5000, "currency": "XAF", name: "order-42"}
+
+    payments.create(params, RequestOptions(sync="acct_ref"))
+
+    assert captured[0].headers["Idempotency-Key"] == "order-42"
+    assert captured[0].headers["X-Sync"] == "acct_ref"
+    assert name not in captured[0].read().decode()
+
+
+def test_payments_create_keeps_the_key_in_the_callers_params_for_a_retry() -> None:
+    captured: list[httpx.Request] = []
+    payments = _capturing_payments(captured)
+    params = {"amount": 5000, "currency": "XAF", "idempotencyKey": "order-42"}
+
+    payments.create(params)
+    payments.create(params)
+
+    assert params["idempotencyKey"] == "order-42"
+    assert [r.headers["Idempotency-Key"] for r in captured] == ["order-42", "order-42"]
+
+
+def test_payments_create_refuses_two_different_idempotency_keys() -> None:
+    captured: list[httpx.Request] = []
+    payments = _capturing_payments(captured)
+
+    with pytest.raises(ValueError, match="idempotency key"):
+        payments.create(
+            {"amount": 5000, "currency": "XAF", "idempotencyKey": "order-42"},
+            RequestOptions(idempotency_key="order-43"),
+        )
+    with pytest.raises(ValueError, match="idempotency key"):
+        payments.create(
+            {"amount": 5000, "currency": "XAF", "idempotencyKey": "a", "idempotency_key": "b"}
+        )
+
+    assert captured == []
+
+
+def test_payments_create_accepts_the_same_key_in_params_and_options() -> None:
+    captured: list[httpx.Request] = []
+    payments = _capturing_payments(captured)
+
+    payments.create(
+        {"amount": 5000, "currency": "XAF", "idempotencyKey": "order-42"},
+        RequestOptions(idempotency_key="order-42"),
+    )
+
+    assert captured[0].headers["Idempotency-Key"] == "order-42"
+
+
+def test_payments_create_refuses_an_idempotency_key_that_is_not_a_string() -> None:
+    payments = _capturing_payments([])
+
+    with pytest.raises(TypeError, match="idempotency key"):
+        payments.create({"amount": 5000, "currency": "XAF", "idempotencyKey": 42})
 
 
 def test_payments_retrieve() -> None:
