@@ -15,6 +15,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `e.field_errors["amount"]` lists them all, in the order the API sent them.
   `errors` is unchanged.
 
+### Deprecated
+- **`listen.config()` and `listen.auth()`.** The API no longer offers them and
+  answers `410 Gone`; calling either now also gives a `DeprecationWarning`. To
+  receive webhooks on your machine, forward them with the Wajub CLI:
+  `wajub listen`.
+
 ### Fixed
 - **A validation error with a field that has no message** raised `IndexError`
   instead of `InvalidRequestError`. That field is now left out.
