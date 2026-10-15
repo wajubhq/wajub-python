@@ -200,3 +200,54 @@ def test_a_header_key_and_a_params_key_must_match() -> None:
         RequestOptions(headers={"Idempotency-Key": "refund-1"}),
     )
     assert captured[0].headers.get_list("Idempotency-Key") == ["refund-1"]
+
+
+@pytest.mark.parametrize(
+    "options",
+    [
+        RequestOptions(idempotency_key=""),
+        RequestOptions(headers={"Idempotency-Key": ""}),
+        RequestOptions(idempotency_key="", headers={"idempotency-key": ""}),
+    ],
+)
+def test_an_empty_key_in_request_options_counts_as_no_key(options: RequestOptions) -> None:
+    captured: list[httpx.Request] = []
+    transfers = _resource(TransfersResource, captured)
+
+    transfers.create({"amount": 1000, "idempotencyKey": "payout-1"}, options)
+    transfers.create({"amount": 1000}, options)
+
+    assert captured[0].headers.get_list("Idempotency-Key") == ["payout-1"]
+    keys = captured[1].headers.get_list("Idempotency-Key")
+    assert len(keys) == 1 and keys[0].startswith("wajub-")
+
+
+def test_an_empty_key_beside_a_real_one_in_request_options_is_ignored() -> None:
+    captured: list[httpx.Request] = []
+    client = _base_client(captured)
+
+    client.post(
+        "/payments",
+        {"amount": 5000},
+        RequestOptions(idempotency_key="", headers={"Idempotency-Key": "order-42"}),
+    )
+    client.post(
+        "/payments",
+        {"amount": 5000},
+        RequestOptions(idempotency_key="order-42", headers={"Idempotency-Key": ""}),
+    )
+
+    assert [r.headers.get_list("Idempotency-Key") for r in captured] == [["order-42"]] * 2
+
+
+def test_an_empty_key_in_params_counts_as_no_key() -> None:
+    captured: list[httpx.Request] = []
+    refunds = _resource(RefundsResource, captured)
+
+    refunds.create(
+        {"payment": "pay_1", "idempotencyKey": "", "idempotency_key": "refund-1"},
+        RequestOptions(idempotency_key="refund-1"),
+    )
+
+    assert captured[0].headers.get_list("Idempotency-Key") == ["refund-1"]
+    assert json.loads(captured[0].read()) == {"payment": "pay_1"}

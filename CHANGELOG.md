@@ -35,6 +35,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   lower case, so a create you sent again was not recognised as the same one.
   The header counts as your key, in any case; one that differs from
   `idempotency_key` or from a key in the params raises a `ValueError`.
+- **An empty idempotency key counts as no key, wherever you pass it.** With
+  `RequestOptions(idempotency_key="")` a create went out without any key, so
+  one the SDK retried after a network error could be made twice; it now gets a
+  generated key, as when you pass none, and a key in the params is used.
 
 ## [1.2.1] — 2026-10-11
 

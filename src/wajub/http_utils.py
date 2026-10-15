@@ -46,15 +46,16 @@ def request_options_idempotency_key(options: RequestOptions | None) -> str | Non
     """The idempotency key set in the request options, if any.
 
     It can be given as ``idempotency_key`` or as an Idempotency-Key header, in
-    any case; given more than once, it must be the same key.
+    any case; given more than once, it must be the same key. An empty key
+    counts as none, as in the params.
     """
     if options is None:
         return None
     given: dict[str, Any] = {}
-    if options.idempotency_key is not None:
+    if options.idempotency_key not in (None, ""):
         given["RequestOptions(idempotency_key=...)"] = options.idempotency_key
     for name, value in (options.headers or {}).items():
-        if is_idempotency_key_header(name) and value is not None:
+        if is_idempotency_key_header(name) and value not in (None, ""):
             given[f"the {name!r} header"] = value
     for where, key in given.items():
         if not isinstance(key, str):
