@@ -57,22 +57,28 @@ def error_from_response(status: int, body: dict, retry_after: int | None = None)
         code = f"http_{status}"
 
     errors = None
+    field_errors = None
     if isinstance(body.get("errors"), dict):
         errors = {}
+        field_errors = {}
         for field, value in body["errors"].items():
-            errors[str(field)] = str(value[0]) if isinstance(value, list) else str(value)
+            messages = [str(item) for item in value] if isinstance(value, list) else [str(value)]
+            if messages:
+                errors[str(field)] = messages[0]
+                field_errors[str(field)] = messages
 
     common = (str(message), str(code), status, errors, body)
+    extra = {"field_errors": field_errors}
 
     if status == 401:
-        return AuthenticationError(*common)
+        return AuthenticationError(*common, **extra)
     if status == 403:
-        return PermissionError(*common)
+        return PermissionError(*common, **extra)
     if status == 404:
-        return NotFoundError(*common)
+        return NotFoundError(*common, **extra)
     if status == 429:
-        return RateLimitError(*common, retry_after=retry_after)
+        return RateLimitError(*common, retry_after=retry_after, **extra)
     if status in (400, 422):
-        return InvalidRequestError(*common)
+        return InvalidRequestError(*common, **extra)
 
-    return WajubError(*common)
+    return WajubError(*common, **extra)

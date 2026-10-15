@@ -9,7 +9,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+- **`field_errors` on API errors, every validation message of each field.** A
+  `422` can give a field several messages; `errors` keeps only the first one.
+  `e.field_errors["amount"]` lists them all, in the order the API sent them.
+  `errors` is unchanged.
+
 ### Fixed
+- **A validation error with a field that has no message** raised `IndexError`
+  instead of `InvalidRequestError`. That field is now left out.
 - **`payments.create()` keeps the idempotency key you put in its params.** It
   removed `idempotencyKey` from your dict, so creating again with the same dict,
   after a timeout for instance, went out without your key and could create a

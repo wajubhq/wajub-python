@@ -160,7 +160,7 @@ from wajub import AuthenticationError, InvalidRequestError, RateLimitError, Waju
 try:
     wajub.payments.create(params)
 except InvalidRequestError as e:
-    print(e.errors)  # field-level validation errors
+    print(e.field_errors)  # every validation message, by field
 except AuthenticationError:
     pass  # check your API key
 except RateLimitError as e:
@@ -179,7 +179,7 @@ except WajubError as e:
 | `ApiConnectionError` | No response: network error or timeout |
 | `WajubError` | Any other error status, and the base of all of the above |
 
-Every error carries `message`, `code`, `http_status`, `errors` (one message per field) and `raw` (the response body). `wajub.PermissionError` shares its name with Python's builtin: import it by name, or catch `wajub.PermissionError`.
+Every error carries `message`, `code`, `http_status`, `field_errors` (every validation message of each field), `errors` (the first message of each field) and `raw` (the response body). `wajub.PermissionError` shares its name with Python's builtin: import it by name, or catch `wajub.PermissionError`.
 
 ## Testing
 
