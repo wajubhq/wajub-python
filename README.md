@@ -32,7 +32,7 @@ pip install wajub
 
 ## Quick start
 
-Amounts are passed in the **smallest currency unit** (e.g. cents for EUR/USD; whole francs for XAF).
+Amounts are in the currency's **main unit**: `12.50` for GHS 12.50, `5000` for XAF 5,000.
 
 ### Redirect checkout
 
