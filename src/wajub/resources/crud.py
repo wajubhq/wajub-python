@@ -7,7 +7,7 @@ from typing import Any
 import httpx
 
 from wajub.http import BaseClient
-from wajub.http_utils import idempotency_key_from_params, pick_resource
+from wajub.http_utils import idempotency_key_from_params, path_id, pick_resource
 from wajub.objects import ApiObject
 from wajub.request_options import RequestOptions
 from wajub.resources.pagination import PagedResult, create_paged_list
@@ -38,7 +38,7 @@ class CrudResource(BaseClient):
         return self._object_class.from_dict(data)
 
     def retrieve(self, id: str) -> ApiObject:
-        data = pick_resource(self.get(f"/{self._path}/{id}"), self._singular)
+        data = pick_resource(self.get(f"/{self._path}/{path_id(id)}"), self._singular)
         return self._object_class.from_dict(data)
 
     def list(self, params: dict[str, Any] | None = None) -> PagedResult:
@@ -47,8 +47,10 @@ class CrudResource(BaseClient):
     def update(
         self, id: str, params: dict[str, Any], options: RequestOptions | None = None
     ) -> ApiObject:
-        data = pick_resource(self.put(f"/{self._path}/{id}", params, options), self._singular)
+        data = pick_resource(
+            self.put(f"/{self._path}/{path_id(id)}", params, options), self._singular
+        )
         return self._object_class.from_dict(data)
 
     def delete(self, id: str, options: RequestOptions | None = None) -> None:
-        self.request("DELETE", f"/{self._path}/{id}", options=options)
+        self.request("DELETE", f"/{self._path}/{path_id(id)}", options=options)

@@ -6,6 +6,7 @@ import re
 import uuid
 from dataclasses import replace
 from typing import Any
+from urllib.parse import unquote
 
 from wajub.errors import (
     AuthenticationError,
@@ -29,6 +30,23 @@ def normalize_api_key(raw: str) -> str:
 
 def default_api_url() -> str:
     return API_URL
+
+
+def path_id(value: object, name: str = "id") -> str:
+    """An id to put in a request path, refused if it could reach another route.
+
+    The API decodes ``%2F`` before matching routes, so ``pay_1/refunds`` and
+    ``pay_1%2Frefunds`` would both reach ``/payments/{id}/refunds``. Wajub ids
+    never contain a slash, and are never empty, ``.`` or ``..``.
+    """
+    text = str(value)
+    decoded = unquote(text)
+    if "/" in decoded or decoded.strip() in ("", ".", ".."):
+        raise ValueError(
+            f"Wajub: {name} {text!r} is not a Wajub id; "
+            "an id is never empty and never contains '/'"
+        )
+    return text
 
 
 def create_idempotency_key(prefix: str = "wajub") -> str:

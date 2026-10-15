@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from wajub.http import BaseClient
-from wajub.http_utils import idempotency_key_from_params, pick_list, pick_resource
+from wajub.http_utils import idempotency_key_from_params, path_id, pick_list, pick_resource
 from wajub.request_options import RequestOptions
 from wajub.resources.pagination import PagedResult, create_paged_list
 
@@ -28,7 +28,7 @@ class TaxResource(BaseClient):
         return pick_list(self.get("/tax/codes", params), "tax_codes", "codes")
 
     def retrieve_code(self, code: str) -> dict:
-        return pick_resource(self.get(f"/tax/codes/{code}"), "tax_code", "code")
+        return pick_resource(self.get(f"/tax/codes/{path_id(code, 'code')}"), "tax_code", "code")
 
     def list_registrations(self, params: dict | None = None) -> PagedResult:
         return create_paged_list(self, "/tax/registrations", "registrations", params)
@@ -41,20 +41,20 @@ class TaxResource(BaseClient):
 
     def retrieve_registration(self, id: str) -> dict:
         return pick_resource(
-            self.get(f"/tax/registrations/{id}"), "registration", "tax_registration"
+            self.get(f"/tax/registrations/{path_id(id)}"), "registration", "tax_registration"
         )
 
     def update_registration(
         self, id: str, params: dict, options: RequestOptions | None = None
     ) -> dict:
         return pick_resource(
-            self.put(f"/tax/registrations/{id}", params, options),
+            self.put(f"/tax/registrations/{path_id(id)}", params, options),
             "registration",
             "tax_registration",
         )
 
     def delete_registration(self, id: str, options: RequestOptions | None = None) -> None:
-        self.request("DELETE", f"/tax/registrations/{id}", options=options)
+        self.request("DELETE", f"/tax/registrations/{path_id(id)}", options=options)
 
     def jurisdictions(self, params: dict | None = None) -> tuple[list, dict | None]:
         return pick_list(

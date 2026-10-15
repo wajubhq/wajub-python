@@ -22,6 +22,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `wajub listen`.
 
 ### Fixed
+- **An id containing `/` is refused before anything is sent.** Such an id
+  reached another endpoint: `payments.retrieve("pay_1/refunds")` listed the
+  payment's refunds, and `customers.delete("cus_1/tax_ids/txi_1")` deleted a
+  tax ID. Every method that takes an id now raises a `ValueError` for an id
+  that is empty or contains `/`, written as is or as `%2F`. Wajub ids never do.
 - **A validation error with a field that has no message** raised `IndexError`
   instead of `InvalidRequestError`. That field is now left out.
 - **`payments.create()` keeps the idempotency key you put in its params.** It

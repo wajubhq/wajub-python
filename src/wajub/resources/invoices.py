@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import httpx
 
-from wajub.http_utils import pick_resource
+from wajub.http_utils import path_id, pick_resource
 from wajub.request_options import RequestOptions
 from wajub.resources.crud import CrudResource
 
@@ -24,12 +24,14 @@ class InvoicesResource(CrudResource):
         )
 
     def send(self, id: str, options: RequestOptions | None = None) -> dict:
-        return pick_resource(self.post(f"/invoices/{id}/send", None, options), "invoice")
+        return pick_resource(self.post(f"/invoices/{path_id(id)}/send", None, options), "invoice")
 
     def mark_paid(
         self, id: str, params: dict | None = None, options: RequestOptions | None = None
     ) -> dict:
-        return pick_resource(self.post(f"/invoices/{id}/mark-paid", params, options), "invoice")
+        return pick_resource(
+            self.post(f"/invoices/{path_id(id)}/mark-paid", params, options), "invoice"
+        )
 
     def cancel(self, id: str, options: RequestOptions | None = None) -> dict:
-        return pick_resource(self.post(f"/invoices/{id}/cancel", None, options), "invoice")
+        return pick_resource(self.post(f"/invoices/{path_id(id)}/cancel", None, options), "invoice")
