@@ -48,10 +48,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   recognised as the same one; with the name in lower case, both keys went out.
   The header now counts as your key, whatever its case, and one that differs
   from `idempotency_key` or from a key in the params raises a `ValueError`.
-- **An empty idempotency key counts as no key, wherever you pass it.** With
-  `RequestOptions(idempotency_key="")` a create went out without any key, so
-  one the SDK retried after a network error could be made twice; it now gets a
-  generated key, as when you pass none, and a key in the params is used.
+- **An empty or blank idempotency key counts as no key, wherever you pass it.**
+  With `RequestOptions(idempotency_key="")` a create went out without any key,
+  so one the SDK retried after a network error could be made twice; it now gets
+  a generated key, as when you pass none, and a key in the params is used. A
+  key is sent without the spaces around it. It must be one the API accepts:
+  letters, digits and `._:-`, up to 128 characters.
 
 ## [1.2.1] — 2026-10-11
 

@@ -251,3 +251,46 @@ def test_an_empty_key_in_params_counts_as_no_key() -> None:
 
     assert captured[0].headers.get_list("Idempotency-Key") == ["refund-1"]
     assert json.loads(captured[0].read()) == {"payment": "pay_1"}
+
+
+def test_a_key_is_sent_without_surrounding_whitespace() -> None:
+    captured: list[httpx.Request] = []
+    refunds = _resource(RefundsResource, captured)
+
+    refunds.create({"payment": "pay_1", "idempotencyKey": "  refund-1\n"})
+    refunds.create(
+        {"payment": "pay_1", "idempotency_key": "refund-1 "},
+        RequestOptions(idempotency_key=" refund-1", headers={"Idempotency-Key": "refund-1\t"}),
+    )
+
+    assert [r.headers.get_list("Idempotency-Key") for r in captured] == [["refund-1"]] * 2
+
+
+@pytest.mark.parametrize(
+    "params, options",
+    [
+        ({"idempotencyKey": "   "}, RequestOptions(idempotency_key="payout-1")),
+        ({"idempotency_key": "payout-1"}, RequestOptions(idempotency_key=" \t")),
+        ({"idempotency_key": "payout-1"}, RequestOptions(headers={"Idempotency-Key": "  "})),
+    ],
+)
+def test_a_whitespace_only_key_counts_as_no_key(
+    params: dict[str, Any], options: RequestOptions
+) -> None:
+    captured: list[httpx.Request] = []
+    transfers = _resource(TransfersResource, captured)
+
+    transfers.create({"amount": 1000, **params}, options)
+
+    assert captured[0].headers.get_list("Idempotency-Key") == ["payout-1"]
+    assert json.loads(captured[0].read()) == {"amount": 1000}
+
+
+def test_a_whitespace_only_key_in_request_options_gets_a_generated_one() -> None:
+    captured: list[httpx.Request] = []
+    client = _base_client(captured)
+
+    client.post("/payments", {"amount": 5000}, RequestOptions(idempotency_key="  "))
+
+    keys = captured[0].headers.get_list("Idempotency-Key")
+    assert len(keys) == 1 and keys[0].startswith("wajub-")

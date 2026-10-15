@@ -60,27 +60,45 @@ def is_idempotency_key_header(name: str) -> bool:
     return name.lower() == "idempotency-key"
 
 
-def request_options_idempotency_key(options: RequestOptions | None) -> str | None:
-    """The idempotency key set in the request options, if any.
+def _idempotency_keys(candidates: dict[str, Any]) -> dict[str, str]:
+    """The keys given among the candidates, by where they were given.
 
-    It can be given as ``idempotency_key`` or as an Idempotency-Key header, in
-    any case; given more than once, it must be the same key. An empty key
-    counts as none, as in the params.
+    A key is stripped, as the API does, and an empty or blank one counts as
+    none. A key that is not a string raises a TypeError.
     """
-    if options is None:
-        return None
-    given: dict[str, Any] = {}
-    if options.idempotency_key not in (None, ""):
-        given["RequestOptions(idempotency_key=...)"] = options.idempotency_key
-    for name, value in (options.headers or {}).items():
-        if is_idempotency_key_header(name) and value not in (None, ""):
-            given[f"the {name!r} header"] = value
-    for where, key in given.items():
+    keys: dict[str, str] = {}
+    for where, key in candidates.items():
+        if key is None:
+            continue
         if not isinstance(key, str):
             raise TypeError(
                 f"Wajub: the idempotency key in {where} must be a string, "
                 f"not {type(key).__name__}"
             )
+        if key.strip():
+            keys[where] = key.strip()
+    return keys
+
+
+def request_options_idempotency_key(options: RequestOptions | None) -> str | None:
+    """The idempotency key set in the request options, if any.
+
+    It can be given as ``idempotency_key`` or as an Idempotency-Key header, in
+    any case; given more than once, it must be the same key. An empty or blank
+    key counts as none, as in the params.
+    """
+    if options is None:
+        return None
+    given = _idempotency_keys(
+        {
+            "RequestOptions(idempotency_key=...)": options.idempotency_key,
+            **{
+                f"the {name!r} header": value
+                for name, value in (options.headers or {}).items()
+                if is_idempotency_key_header(name)
+            },
+        }
+    )
     if len(set(given.values())) > 1:
         raise ValueError(
             "Wajub: RequestOptions carries two different idempotency keys "
@@ -101,14 +119,9 @@ def idempotency_key_from_params(
     if params is None:
         return None, options
     body = dict(params)
-    keys = {name: body.pop(name) for name in _IDEMPOTENCY_KEY_PARAMS if name in body}
-    given = {name: key for name, key in keys.items() if key is not None and key != ""}
-    for name, key in given.items():
-        if not isinstance(key, str):
-            raise TypeError(
-                f"Wajub: the idempotency key in params[{name!r}] must be a string, "
-                f"not {type(key).__name__}"
-            )
+    given = _idempotency_keys(
+        {f"params[{name!r}]": body.pop(name) for name in _IDEMPOTENCY_KEY_PARAMS if name in body}
+    )
     if len(set(given.values())) > 1:
         raise ValueError(
             "Wajub: params has two different idempotency keys "
