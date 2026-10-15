@@ -111,12 +111,13 @@ def test_an_id_that_would_reach_another_route_is_refused_before_sending(
     assert captured == []
 
 
+@pytest.mark.parametrize("good_id", ["obj_9.x-Y", "trx.1..2", "..a", "a..", ".a"])
 @pytest.mark.parametrize("call", sorted(CALLS))
-def test_a_wajub_id_is_sent_in_the_path(call: str) -> None:
+def test_a_wajub_id_is_sent_in_the_path(call: str, good_id: str) -> None:
     captured: list[httpx.Request] = []
     cls, send = CALLS[call]
 
-    send(_resource(cls, captured), "obj_9.x-Y")
+    send(_resource(cls, captured), good_id)
 
     assert len(captured) == 1
-    assert "/obj_9.x-Y" in captured[0].url.path
+    assert f"/{good_id}" in captured[0].url.path
