@@ -28,6 +28,25 @@ def normalize_api_key(raw: str) -> str:
     return key
 
 
+# Wajub keys are printable ASCII without spaces: anything else cannot be sent
+# in a header, and the HTTP client's error would quote the key.
+_SENDABLE_API_KEY = re.compile(r"[\x21-\x7e]*")
+
+
+def api_key_header(raw: str) -> str:
+    """The API key as sent in the Authorization header, refused if unsendable.
+
+    The error never contains the key.
+    """
+    key = normalize_api_key(raw)
+    if not _SENDABLE_API_KEY.fullmatch(key):
+        raise ValueError(
+            "Wajub: the API key contains a character that cannot be sent: a space, "
+            "a line break or a non-ASCII character. Copy it again from the dashboard."
+        )
+    return key
+
+
 def default_api_url() -> str:
     return API_URL
 

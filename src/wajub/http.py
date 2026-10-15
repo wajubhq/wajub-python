@@ -9,10 +9,10 @@ import httpx
 
 from wajub.errors import ApiConnectionError
 from wajub.http_utils import (
+    api_key_header,
     create_idempotency_key,
     error_from_response,
     is_idempotency_key_header,
-    normalize_api_key,
     request_options_idempotency_key,
 )
 from wajub.request_options import RequestOptions
@@ -75,7 +75,7 @@ class BaseClient:
     ) -> dict:
         headers: dict[str, str] = {
             "Accept": "application/json",
-            "Authorization": normalize_api_key(self.api_key),
+            "Authorization": api_key_header(self.api_key),
         }
 
         # An Idempotency-Key in options.headers counts as the key: it is sent

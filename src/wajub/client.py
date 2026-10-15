@@ -8,7 +8,7 @@ from typing import Any
 
 import httpx
 
-from wajub.http_utils import API_URL, normalize_api_key
+from wajub.http_utils import API_URL, api_key_header
 from wajub.resources import (
     AccountsResource,
     BalanceResource,
@@ -66,9 +66,7 @@ class Wajub:
         http_client: httpx.Client | None = None,
         max_network_retries: int | None = None,
     ) -> None:
-        key = normalize_api_key(
-            api_key or os.environ.get("WAJUB_API_KEY") or ""
-        )
+        key = api_key_header(api_key or os.environ.get("WAJUB_API_KEY") or "")
         if not key:
             raise ValueError("Wajub: api_key is required")
 
