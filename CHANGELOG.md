@@ -21,20 +21,22 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **`payments.create()` keeps the idempotency key you put in its params.** It
   removed `idempotencyKey` from your dict, so creating again with the same dict,
   after a timeout for instance, went out without your key and could create a
-  second payment. Your dict is left as it was, `idempotency_key` in the params
-  counts as your key too, and a key that is not a string, or that differs from
-  the one in `RequestOptions`, raises an error instead of being ignored.
+  second payment. Your dict is now left as it was, and `idempotency_key` in the
+  params counts as your key too. A key in the params that differs from the one
+  in `RequestOptions` raises a `ValueError`, where the key in the params used to
+  win silently. A key that is not a string raises a `TypeError` that names the
+  param, instead of the HTTP client's.
 - **The idempotency key in the params of `refunds.create()`, `transfers.create()`
   and the other creates is used.** It went out in the request body, where the
   API ignores it, and each call got a new key: creating again after a timeout
   could refund or pay out twice. `idempotencyKey` or `idempotency_key` in the
   params of any create, `payments.process()` or `payments.process_split()` now
   works as on `payments.create()`.
-- **An `Idempotency-Key` you set in `RequestOptions(headers=...)` is sent.** A
-  generated key replaced it, or went out beside it when you wrote the name in
-  lower case, so a create you sent again was not recognised as the same one.
-  The header counts as your key, in any case; one that differs from
-  `idempotency_key` or from a key in the params raises a `ValueError`.
+- **An `Idempotency-Key` you set in `RequestOptions(headers=...)` is sent
+  alone.** A generated key replaced it, so a create you sent again was not
+  recognised as the same one; with the name in lower case, both keys went out.
+  The header now counts as your key, whatever its case, and one that differs
+  from `idempotency_key` or from a key in the params raises a `ValueError`.
 - **An empty idempotency key counts as no key, wherever you pass it.** With
   `RequestOptions(idempotency_key="")` a create went out without any key, so
   one the SDK retried after a network error could be made twice; it now gets a
