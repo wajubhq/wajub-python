@@ -294,3 +294,24 @@ def test_a_whitespace_only_key_in_request_options_gets_a_generated_one() -> None
 
     keys = captured[0].headers.get_list("Idempotency-Key")
     assert len(keys) == 1 and keys[0].startswith("wajub-")
+
+
+@pytest.mark.parametrize(
+    "options, where",
+    [
+        (RequestOptions(idempotency_key=42), r"RequestOptions\(idempotency_key=\.\.\.\)"),  # type: ignore[arg-type]
+        (RequestOptions(headers={"Idempotency-Key": 42}), "the 'Idempotency-Key' header"),  # type: ignore[dict-item]
+        (RequestOptions(headers={"idempotency-key": b"k"}), "the 'idempotency-key' header"),  # type: ignore[dict-item]
+    ],
+)
+def test_a_key_in_request_options_that_is_not_a_string_is_refused(
+    options: RequestOptions, where: str
+) -> None:
+    captured: list[httpx.Request] = []
+
+    with pytest.raises(TypeError, match=f"idempotency key in {where} must be a string"):
+        _base_client(captured).post("/payments", {"amount": 5000}, options)
+    with pytest.raises(TypeError, match=f"idempotency key in {where} must be a string"):
+        _resource(RefundsResource, captured).create({"idempotencyKey": "refund-1"}, options)
+
+    assert captured == []
