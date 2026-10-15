@@ -10,27 +10,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [1.2.1] — 2026-10-11
 
 ### Fixed
-- **The package installs again.** `1.1.0` and `1.1.1` were published to PyPI
-  as a wheel holding a single file, `wajub/py.typed`: `pip install wajub`
-  succeeded and `import wajub` raised `ModuleNotFoundError`. The sdist was
-  limited to that marker, and the wheel is built from the sdist. It now carries
-  the whole `src/wajub` package, and a test builds the wheel the same way and
-  checks every module is in it.
+- **The package installs again.** With `1.1.0` and `1.1.1`, `pip install wajub`
+  succeeded but `import wajub` raised `ModuleNotFoundError`: the package on
+  PyPI did not contain the module. Install `1.2.1`.
 - **A missing webhook header** (`signature` or `timestamp` passed as `None`)
   raises `WebhookSignatureVerificationError` instead of an `AttributeError`, so
   your handler answers 400, not 500.
 
 ### Changed
-- **The `409` for an `Idempotency-Key` still being processed is retried.** A
-  call sent again after a timeout can reach the API while the first one is still
-  running; the API answers `409` with `errors.idempotency_key`. The client now
-  waits 2 then 4 seconds and asks again with the same key, within its usual 2
-  retries, and returns the first request's result. Every other `409` is still
-  raised at once.
+- **A create sent again with the same idempotency key while the first is still
+  running** now returns the first request's result instead of a `409` error.
 
 ## [1.2.0] — 2026-10-01
 
-Tagged, never published to PyPI. Its one change ships with 1.2.1.
+Not published to PyPI. Its one change ships with 1.2.1.
 
 ### Removed
 - `payments.initialize()`, an alias of `payments.create()`. Call `create()`.
