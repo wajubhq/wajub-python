@@ -11,7 +11,9 @@ from wajub.errors import ApiConnectionError
 from wajub.http_utils import (
     create_idempotency_key,
     error_from_response,
+    is_idempotency_key_header,
     normalize_api_key,
+    request_options_idempotency_key,
 )
 from wajub.request_options import RequestOptions
 from wajub.retry import (
@@ -76,13 +78,18 @@ class BaseClient:
             "Authorization": normalize_api_key(self.api_key),
         }
 
+        # An Idempotency-Key in options.headers counts as the key: it is sent
+        # once, under one name, and never replaced by a generated one.
+        idempotency_key = request_options_idempotency_key(options)
+
         if options and options.headers:
-            headers.update(options.headers)
+            headers.update(
+                {k: v for k, v in options.headers.items() if not is_idempotency_key_header(k)}
+            )
 
         if options and options.sync:
             headers["X-Sync"] = options.sync
 
-        idempotency_key = options.idempotency_key if options else None
         if idempotency_key is None and method not in ("GET", "DELETE"):
             idempotency_key = create_idempotency_key(self.idempotency_key_prefix)
 

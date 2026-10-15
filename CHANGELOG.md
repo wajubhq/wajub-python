@@ -30,6 +30,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   could refund or pay out twice. `idempotencyKey` or `idempotency_key` in the
   params of any create, `payments.process()` or `payments.process_split()` now
   works as on `payments.create()`.
+- **An `Idempotency-Key` you set in `RequestOptions(headers=...)` is sent.** A
+  generated key replaced it, or went out beside it when you wrote the name in
+  lower case, so a create you sent again was not recognised as the same one.
+  The header counts as your key, in any case; one that differs from
+  `idempotency_key` or from a key in the params raises a `ValueError`.
 
 ## [1.2.1] — 2026-10-11
 

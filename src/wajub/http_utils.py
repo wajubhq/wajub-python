@@ -38,6 +38,38 @@ def create_idempotency_key(prefix: str = "wajub") -> str:
 _IDEMPOTENCY_KEY_PARAMS = ("idempotencyKey", "idempotency_key")
 
 
+def is_idempotency_key_header(name: str) -> bool:
+    return name.lower() == "idempotency-key"
+
+
+def request_options_idempotency_key(options: RequestOptions | None) -> str | None:
+    """The idempotency key set in the request options, if any.
+
+    It can be given as ``idempotency_key`` or as an Idempotency-Key header, in
+    any case; given more than once, it must be the same key.
+    """
+    if options is None:
+        return None
+    given: dict[str, Any] = {}
+    if options.idempotency_key is not None:
+        given["RequestOptions(idempotency_key=...)"] = options.idempotency_key
+    for name, value in (options.headers or {}).items():
+        if is_idempotency_key_header(name) and value is not None:
+            given[f"the {name!r} header"] = value
+    for where, key in given.items():
+        if not isinstance(key, str):
+            raise TypeError(
+                f"Wajub: the idempotency key in {where} must be a string, "
+                f"not {type(key).__name__}"
+            )
+    if len(set(given.values())) > 1:
+        raise ValueError(
+            "Wajub: RequestOptions carries two different idempotency keys "
+            f"({' and '.join(given)}); pass it once, as RequestOptions(idempotency_key=...)"
+        )
+    return next(iter(given.values()), None)
+
+
 def idempotency_key_from_params(
     params: dict[str, Any] | None, options: RequestOptions | None
 ) -> tuple[dict[str, Any] | None, RequestOptions | None]:
@@ -69,7 +101,8 @@ def idempotency_key_from_params(
     key = next(iter(given.values()))
     if options is None:
         return body, RequestOptions(idempotency_key=key)
-    if options.idempotency_key is not None and options.idempotency_key != key:
+    existing = request_options_idempotency_key(options)
+    if existing is not None and existing != key:
         raise ValueError(
             "Wajub: params and RequestOptions carry two different idempotency keys; "
             "pass it once, as RequestOptions(idempotency_key=...)"

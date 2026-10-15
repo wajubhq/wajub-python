@@ -10,6 +10,7 @@ import httpx
 import pytest
 from helpers import API_KEY, API_URL, make_client
 
+from wajub.http import BaseClient
 from wajub.request_options import RequestOptions
 from wajub.resources import (
     AccountsResource,
@@ -127,3 +128,75 @@ def test_without_a_key_in_params_each_call_still_gets_its_own_key(call: str) -> 
 
     assert captured[0].headers["Idempotency-Key"].startswith("wajub-")
     assert captured[1].headers["Idempotency-Key"] == "mine"
+
+
+def _base_client(captured: list[httpx.Request]) -> BaseClient:
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured.append(request)
+        return httpx.Response(200, json={"id": "obj_1"})
+
+    return BaseClient(API_KEY, API_URL, client=make_client(httpx.MockTransport(handler)))
+
+
+@pytest.mark.parametrize("header", ["Idempotency-Key", "idempotency-key", "IDEMPOTENCY-KEY"])
+@pytest.mark.parametrize("method", ["POST", "PUT", "DELETE"])
+def test_an_idempotency_key_header_in_request_options_is_sent_as_given(
+    header: str, method: str
+) -> None:
+    captured: list[httpx.Request] = []
+    client = _base_client(captured)
+
+    client.request(method, "/payments", options=RequestOptions(headers={header: "order-42"}))
+
+    assert captured[0].headers.get_list("Idempotency-Key") == ["order-42"]
+
+
+def test_the_same_key_as_header_and_idempotency_key_is_sent_once() -> None:
+    captured: list[httpx.Request] = []
+    client = _base_client(captured)
+
+    client.post(
+        "/payments",
+        {"amount": 5000},
+        RequestOptions(idempotency_key="order-42", headers={"idempotency-key": "order-42"}),
+    )
+
+    assert captured[0].headers.get_list("Idempotency-Key") == ["order-42"]
+
+
+def test_a_header_that_differs_from_idempotency_key_is_refused() -> None:
+    captured: list[httpx.Request] = []
+    client = _base_client(captured)
+
+    with pytest.raises(ValueError, match="idempotency key"):
+        client.post(
+            "/payments",
+            {"amount": 5000},
+            RequestOptions(idempotency_key="order-42", headers={"Idempotency-Key": "order-43"}),
+        )
+    with pytest.raises(ValueError, match="idempotency key"):
+        client.post(
+            "/payments",
+            {"amount": 5000},
+            RequestOptions(headers={"Idempotency-Key": "a", "idempotency-key": "b"}),
+        )
+
+    assert captured == []
+
+
+def test_a_header_key_and_a_params_key_must_match() -> None:
+    captured: list[httpx.Request] = []
+    refunds = _resource(RefundsResource, captured)
+
+    with pytest.raises(ValueError, match="idempotency key"):
+        refunds.create(
+            {"payment": "pay_1", "idempotencyKey": "refund-1"},
+            RequestOptions(headers={"Idempotency-Key": "refund-2"}),
+        )
+    assert captured == []
+
+    refunds.create(
+        {"payment": "pay_1", "idempotencyKey": "refund-1"},
+        RequestOptions(headers={"Idempotency-Key": "refund-1"}),
+    )
+    assert captured[0].headers.get_list("Idempotency-Key") == ["refund-1"]
