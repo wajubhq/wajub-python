@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import re
 import uuid
+from dataclasses import replace
+from typing import Any
 
 from wajub.errors import (
     AuthenticationError,
@@ -13,6 +15,7 @@ from wajub.errors import (
     RateLimitError,
     WajubError,
 )
+from wajub.request_options import RequestOptions
 
 
 API_URL = "https://api.wajub.com"
@@ -31,6 +34,48 @@ def default_api_url() -> str:
 
 def create_idempotency_key(prefix: str = "wajub") -> str:
     return f"{prefix}-{uuid.uuid4()}"
+
+
+_IDEMPOTENCY_KEY_PARAMS = ("idempotencyKey", "idempotency_key")
+
+
+def idempotency_key_from_params(
+    params: dict[str, Any] | None, options: RequestOptions | None
+) -> tuple[dict[str, Any] | None, RequestOptions | None]:
+    """Move an idempotency key given in the params to the request options.
+
+    Returns the body to send and the options to send it with. The key is sent
+    as the Idempotency-Key header, never in the body, and the caller's dict is
+    left as it was so that the same params can be sent again.
+    """
+    if params is None:
+        return None, options
+    body = dict(params)
+    keys = {name: body.pop(name) for name in _IDEMPOTENCY_KEY_PARAMS if name in body}
+    given = {name: key for name, key in keys.items() if key is not None and key != ""}
+    for name, key in given.items():
+        if not isinstance(key, str):
+            raise TypeError(
+                f"Wajub: the idempotency key in params[{name!r}] must be a string, "
+                f"not {type(key).__name__}"
+            )
+    if len(set(given.values())) > 1:
+        raise ValueError(
+            "Wajub: params has two different idempotency keys "
+            "('idempotencyKey' and 'idempotency_key'); pass one"
+        )
+    if not given:
+        return body, options
+
+    key = next(iter(given.values()))
+    if options is None:
+        return body, RequestOptions(idempotency_key=key)
+    if options.idempotency_key is not None and options.idempotency_key != key:
+        raise ValueError(
+            "Wajub: params and RequestOptions carry two different idempotency keys; "
+            "pass it once, as RequestOptions(idempotency_key=...)"
+        )
+    return body, replace(options, idempotency_key=key)
 
 
 def pick_resource(body: dict, *keys: str) -> dict:

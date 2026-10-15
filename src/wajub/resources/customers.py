@@ -6,7 +6,7 @@ from typing import Any
 
 import httpx
 
-from wajub.http_utils import pick_list, pick_resource
+from wajub.http_utils import idempotency_key_from_params, pick_list, pick_resource
 from wajub.objects import Customer
 from wajub.request_options import RequestOptions
 from wajub.resources.crud import CrudResource
@@ -44,8 +44,9 @@ class CustomersResource(CrudResource):
     def create_tax_id(
         self, customer_id: str, params: dict[str, Any], options: RequestOptions | None = None
     ) -> dict:
+        body, options = idempotency_key_from_params(params, options)
         return pick_resource(
-            self.post(f"/customers/{customer_id}/tax_ids", params, options), "tax_id"
+            self.post(f"/customers/{customer_id}/tax_ids", body, options), "tax_id"
         )
 
     def delete_tax_id(self, customer_id: str, tax_id: str, options: RequestOptions | None = None) -> None:

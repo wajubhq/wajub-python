@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from wajub.http import BaseClient
-from wajub.http_utils import pick_list, pick_resource
+from wajub.http_utils import idempotency_key_from_params, pick_list, pick_resource
 from wajub.request_options import RequestOptions
 from wajub.resources.pagination import PagedResult, create_paged_list
 
@@ -36,8 +36,9 @@ class TaxResource(BaseClient):
         return create_paged_list(self, "/tax/registrations", "registrations", params)
 
     def create_registration(self, params: dict, options: RequestOptions | None = None) -> dict:
+        body, options = idempotency_key_from_params(params, options)
         return pick_resource(
-            self.post("/tax/registrations", params, options), "registration", "tax_registration"
+            self.post("/tax/registrations", body, options), "registration", "tax_registration"
         )
 
     def retrieve_registration(self, id: str) -> dict:

@@ -7,7 +7,7 @@ from typing import Any, Type
 import httpx
 
 from wajub.http import BaseClient
-from wajub.http_utils import pick_resource
+from wajub.http_utils import idempotency_key_from_params, pick_resource
 from wajub.objects import ApiObject
 from wajub.request_options import RequestOptions
 from wajub.resources.pagination import PagedResult, create_paged_list
@@ -33,7 +33,8 @@ class CrudResource(BaseClient):
         self._object_class = object_class
 
     def create(self, params: dict[str, Any], options: RequestOptions | None = None) -> ApiObject:
-        data = pick_resource(self.post(f"/{self._path}", params, options), self._singular)
+        body, options = idempotency_key_from_params(params, options)
+        data = pick_resource(self.post(f"/{self._path}", body, options), self._singular)
         return self._object_class.from_dict(data)
 
     def retrieve(self, id: str) -> ApiObject:

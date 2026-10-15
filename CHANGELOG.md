@@ -24,6 +24,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   second payment. Your dict is left as it was, `idempotency_key` in the params
   counts as your key too, and a key that is not a string, or that differs from
   the one in `RequestOptions`, raises an error instead of being ignored.
+- **The idempotency key in the params of `refunds.create()`, `transfers.create()`
+  and the other creates is used.** It went out in the request body, where the
+  API ignores it, and each call got a new key: creating again after a timeout
+  could refund or pay out twice. `idempotencyKey` or `idempotency_key` in the
+  params of any create, `payments.process()` or `payments.process_split()` now
+  works as on `payments.create()`.
 
 ## [1.2.1] — 2026-10-11
 
