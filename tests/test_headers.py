@@ -144,3 +144,13 @@ def test_a_client_with_an_empty_key_sends_nothing() -> None:
         client.get("/balance")
 
     assert captured == []
+
+
+@pytest.mark.parametrize("headers", [{"X-Sync": ""}, {"x-sync": "  "}, {"X-SYNC": "\t"}])
+def test_a_blank_x_sync_header_counts_as_none(headers: dict[str, str]) -> None:
+    captured: list[httpx.Request] = []
+
+    _client(captured).post("/payments", {"a": 1}, RequestOptions(headers=headers))
+    _client(captured).post("/payments", {"a": 1}, RequestOptions(sync=" ", headers=headers))
+
+    assert [r.headers.get_list("X-Sync") for r in captured] == [[], []]
