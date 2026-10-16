@@ -8,6 +8,7 @@ from helpers import API_KEY, API_URL, make_client
 
 from wajub.http import BaseClient
 from wajub.request_options import RequestOptions
+from wajub.resources import RefundsResource
 
 
 def _client(captured: list[httpx.Request]) -> BaseClient:
@@ -154,3 +155,76 @@ def test_a_blank_x_sync_header_counts_as_none(headers: dict[str, str]) -> None:
     _client(captured).post("/payments", {"a": 1}, RequestOptions(sync=" ", headers=headers))
 
     assert [r.headers.get_list("X-Sync") for r in captured] == [[], []]
+
+
+UNSENDABLE_VALUES = ["acct\n1", "acct\r\n1", "acct\x001", "acct\x7f1", "accté1"]
+
+
+def _retrying_client(captured: list[httpx.Request]) -> BaseClient:
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured.append(request)
+        raise httpx.ConnectError("unreachable")
+
+    return BaseClient(
+        API_KEY, API_URL, client=make_client(httpx.MockTransport(handler)), max_network_retries=2
+    )
+
+
+@pytest.mark.parametrize("value", UNSENDABLE_VALUES)
+@pytest.mark.parametrize(
+    "options, header",
+    [
+        (lambda v: RequestOptions(sync=v), "X-Sync"),
+        (lambda v: RequestOptions(headers={"x-sync": v}), "X-Sync"),
+        (lambda v: RequestOptions(idempotency_key=f"k-{v}"), "Idempotency-Key"),
+        (lambda v: RequestOptions(headers={"X-Trace": v}), "X-Trace"),
+    ],
+)
+def test_an_unsendable_header_value_fails_before_any_request_or_retry(
+    value: str, options: object, header: str
+) -> None:
+    captured: list[httpx.Request] = []
+
+    with pytest.raises(ValueError, match=f"the '{header}' header contains a character") as raised:
+        _retrying_client(captured).post("/payments", {"a": 1}, options(value))  # type: ignore[operator]
+
+    assert captured == []
+    assert "acct" not in str(raised.value)
+    assert raised.value.__context__ is None
+
+
+@pytest.mark.parametrize("value", ["sk_test.a\nb", "sk_test.aé"])
+def test_an_unsendable_key_fails_before_any_request_or_retry(value: str) -> None:
+    captured: list[httpx.Request] = []
+    client = _retrying_client(captured)
+
+    with pytest.raises(ValueError, match="cannot be sent"):
+        client.post("/payments", {"a": 1}, RequestOptions(headers={"Authorization": value}))
+    client.api_key = value
+    with pytest.raises(ValueError, match="cannot be sent"):
+        client.get("/balance")
+
+    assert captured == []
+
+
+def test_an_idempotency_key_with_a_line_break_in_the_params_fails_before_sending() -> None:
+    captured: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured.append(request)
+        raise httpx.ConnectError("unreachable")
+
+    refunds = RefundsResource(API_KEY, API_URL, client=make_client(httpx.MockTransport(handler)))
+
+    with pytest.raises(ValueError, match="'Idempotency-Key' header contains a character"):
+        refunds.create({"payment": "pay_1", "idempotencyKey": "refund\n42"})
+
+    assert captured == []
+
+
+def test_spaces_around_a_header_value_are_dropped() -> None:
+    captured: list[httpx.Request] = []
+
+    _client(captured).post("/payments", {"a": 1}, RequestOptions(headers={"X-Trace": " t1\t"}))
+
+    assert captured[0].headers.get_list("X-Trace") == ["t1"]

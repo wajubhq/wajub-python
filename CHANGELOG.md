@@ -34,6 +34,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   with a line break, a space or a non-ASCII character, as a bad copy can leave,
   failed with an error that could show the key in full. `Wajub()` now raises a
   `ValueError` that names the problem, not the key, and nothing is sent.
+- **A header value that cannot be sent fails at once.** A line break or a
+  non-ASCII character in an idempotency key, an `X-Sync` value or another
+  header you set failed with an unclear error, after the retries for a line
+  break. It now raises a `ValueError` that names the header, not the value,
+  before anything is sent. Spaces around a header value are dropped.
 - **The idempotency key you give protects every create.** Given in the params
   of `payments.create()`, it was removed from your dict, so creating again with
   the same dict could create a second payment. Given in the params of

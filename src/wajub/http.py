@@ -12,6 +12,7 @@ from wajub.http_utils import (
     api_key_header,
     create_idempotency_key,
     error_from_response,
+    header_value,
     request_options_idempotency_key,
     request_options_sync,
 )
@@ -111,11 +112,19 @@ class BaseClient:
         if idempotency_key:
             _set_header(headers, "Idempotency-Key", idempotency_key)
 
+        if body is not None:
+            _set_header(headers, "Content-Type", "application/json")
+
+        # Checked before the first attempt: a value that cannot be sent never
+        # reaches the network, nor the retries, nor an error message.
+        for name, value in headers.items():
+            if name != "Authorization":
+                headers[name] = header_value(name, value)
+
         kwargs: dict[str, Any] = {"headers": headers}
         if query:
             kwargs["params"] = {k: v for k, v in query.items() if v is not None}
         if body is not None:
-            _set_header(headers, "Content-Type", "application/json")
             kwargs["json"] = body
 
         attempt = 0

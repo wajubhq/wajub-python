@@ -62,6 +62,32 @@ def _unsendable_api_key(where: str) -> str:
     )
 
 
+# Control characters, line breaks included, cannot be sent in a header value.
+_UNSENDABLE_HEADER_CHAR = re.compile(r"[\x00-\x08\x0a-\x1f\x7f]")
+
+
+def header_value(name: str, value: Any) -> Any:
+    """A header value as sent, without the spaces around it.
+
+    A value with a line break, a control character or, in a string, a
+    non-ASCII character is refused before anything is sent. The error names the
+    header, never the value. Bytes are sent as given, as before.
+    """
+    if isinstance(value, bytes):
+        text = value.decode("latin-1")
+    elif isinstance(value, str):
+        text = value
+    else:
+        return value
+    text = text.strip(" \t")
+    if (isinstance(value, str) and not text.isascii()) or _UNSENDABLE_HEADER_CHAR.search(text):
+        raise ValueError(
+            f"Wajub: the {name!r} header contains a character that cannot be sent: "
+            "a line break, a control character or a non-ASCII character"
+        )
+    return text if isinstance(value, str) else text.encode("latin-1")
+
+
 def default_api_url() -> str:
     return API_URL
 
