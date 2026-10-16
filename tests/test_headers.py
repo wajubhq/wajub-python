@@ -106,7 +106,9 @@ def test_an_authorization_header_that_is_not_a_string_is_refused(value: object) 
 
     with pytest.raises(TypeError, match="'Authorization' header must be a string"):
         _client(captured).post(
-            "/payments", {"a": 1}, RequestOptions(headers={"Authorization": value})  # type: ignore[dict-item]
+            "/payments",
+            {"a": 1},
+            RequestOptions(headers={"Authorization": value}),  # type: ignore[dict-item]
         )
 
     assert captured == []
@@ -117,7 +119,9 @@ def test_an_authorization_header_given_as_bytes_still_works(name: str) -> None:
     captured: list[httpx.Request] = []
 
     _client(captured).post(
-        "/payments", {"a": 1}, RequestOptions(headers={name: b"sk_test.other"})  # type: ignore[dict-item]
+        "/payments",
+        {"a": 1},
+        RequestOptions(headers={name: b"sk_test.other"}),  # type: ignore[dict-item]
     )
 
     assert captured[0].headers.get_list("Authorization") == ["sk_test.other"]
@@ -128,7 +132,9 @@ def test_an_authorization_header_with_non_ascii_bytes_is_refused_without_showing
 
     with pytest.raises(ValueError, match="cannot be sent") as raised:
         _client(captured).post(
-            "/payments", {"a": 1}, RequestOptions(headers={"Authorization": b"sk_test.s3cr3t\xe9"})  # type: ignore[dict-item]
+            "/payments",
+            {"a": 1},
+            RequestOptions(headers={"Authorization": b"sk_test.s3cr3t\xe9"}),  # type: ignore[dict-item]
         )
 
     assert "s3cr3t" not in str(raised.value)

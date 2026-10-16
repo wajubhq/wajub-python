@@ -22,9 +22,7 @@ def test_payments_create_unwraps_transaction_and_urls() -> None:
             },
         )
 
-    payments = PaymentsResource(
-        API_KEY, API_URL, client=make_client(httpx.MockTransport(handler))
-    )
+    payments = PaymentsResource(API_KEY, API_URL, client=make_client(httpx.MockTransport(handler)))
     payment = payments.create({"amount": 5000, "currency": "XAF"})
 
     assert isinstance(payment, Payment)
@@ -109,9 +107,7 @@ def test_payments_retrieve() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(200, json={"transaction": {"id": "pay_789", "status": "succeeded"}})
 
-    payments = PaymentsResource(
-        API_KEY, API_URL, client=make_client(httpx.MockTransport(handler))
-    )
+    payments = PaymentsResource(API_KEY, API_URL, client=make_client(httpx.MockTransport(handler)))
     payment = payments.retrieve("pay_789")
     assert payment.status == "succeeded"
     assert payment["status"] == "succeeded"
@@ -138,9 +134,7 @@ def test_payments_list_pagination() -> None:
             },
         )
 
-    payments = PaymentsResource(
-        API_KEY, API_URL, client=make_client(httpx.MockTransport(handler))
-    )
+    payments = PaymentsResource(API_KEY, API_URL, client=make_client(httpx.MockTransport(handler)))
     page1 = payments.list({"per_page": 1})
     assert page1.data[0]["id"] == "pay_1"
     assert page1.has_more is True
@@ -161,9 +155,7 @@ def test_refunds_crud() -> None:
             return httpx.Response(200, json={"refund": {"id": "ref_new", "status": "pending"}})
         return httpx.Response(200, json={})
 
-    refunds = RefundsResource(
-        API_KEY, API_URL, client=make_client(httpx.MockTransport(handler))
-    )
+    refunds = RefundsResource(API_KEY, API_URL, client=make_client(httpx.MockTransport(handler)))
     created = refunds.create({"payment_id": "pay_1", "amount": 500})
     assert created["id"] == "ref_new"
 

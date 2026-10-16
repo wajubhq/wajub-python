@@ -19,7 +19,13 @@ class AccountsResource(CrudResource):
         max_network_retries: int | None = None,
     ) -> None:
         super().__init__(
-            api_key, base_url, "accounts", "account", "accounts", prefix, client,
+            api_key,
+            base_url,
+            "accounts",
+            "account",
+            "accounts",
+            prefix,
+            client,
             max_network_retries=max_network_retries,
         )
 

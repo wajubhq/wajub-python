@@ -22,7 +22,14 @@ class CustomersResource(CrudResource):
         max_network_retries: int | None = None,
     ) -> None:
         super().__init__(
-            api_key, base_url, "customers", "customer", "customers", prefix, client, Customer,
+            api_key,
+            base_url,
+            "customers",
+            "customer",
+            "customers",
+            prefix,
+            client,
+            Customer,
             max_network_retries=max_network_retries,
         )
 
@@ -64,7 +71,6 @@ class CustomersResource(CrudResource):
         self, customer_id: str, tax_id: str, options: RequestOptions | None = None
     ) -> None:
         path = (
-            f"/customers/{path_id(customer_id, 'customer_id')}"
-            f"/tax_ids/{path_id(tax_id, 'tax_id')}"
+            f"/customers/{path_id(customer_id, 'customer_id')}/tax_ids/{path_id(tax_id, 'tax_id')}"
         )
         self.request("DELETE", path, options=options)

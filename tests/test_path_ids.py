@@ -95,8 +95,17 @@ def _resource(cls: type, captured: list[httpx.Request]) -> Any:
 
 @pytest.mark.parametrize(
     "bad_id",
-    ["pay_1/refunds", "cus_1/tax_ids/txi_1", "/", "pay_1%2Frefunds", "pay_1%2frefunds", "",
-     " ", ".", ".."],
+    [
+        "pay_1/refunds",
+        "cus_1/tax_ids/txi_1",
+        "/",
+        "pay_1%2Frefunds",
+        "pay_1%2frefunds",
+        "",
+        " ",
+        ".",
+        "..",
+    ],
 )
 @pytest.mark.parametrize("call", sorted(CALLS))
 def test_an_id_that_would_reach_another_route_is_refused_before_sending(
