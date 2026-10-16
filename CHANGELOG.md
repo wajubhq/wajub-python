@@ -15,6 +15,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `e.field_errors["amount"]` lists them all, in the order the API sent them.
   `errors` is unchanged.
 
+### Changed
+- **Two different idempotency keys, or two different `X-Sync` values, for one
+  request raise a `ValueError`.** This covers a key in the params and another
+  in `RequestOptions`, both `idempotencyKey` and `idempotency_key` in the
+  params, `idempotency_key` and an `Idempotency-Key` header, and `sync` and an
+  `X-Sync` header. With 1.2.1, one of them was ignored without a word, or both
+  went out. Give each one once.
+
 ### Deprecated
 - **`listen.config()` and `listen.auth()`.** The API no longer offers them and
   answers `410 Gone`; calling either now also gives a `DeprecationWarning`. To
@@ -22,17 +30,31 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `wajub listen`.
 
 ### Fixed
-- **An id containing `/` is refused before anything is sent.** Such an id
-  reached another endpoint: `payments.retrieve("pay_1/refunds")` listed the
-  payment's refunds, and `customers.delete("cus_1/tax_ids/txi_1")` deleted a
-  tax ID, and `payments.retrieve("")` or `payments.retrieve(".")` the list of
-  payments. Every method that
-  takes an id now raises a `ValueError` for an id that is empty, `.` or `..`, or
-  that contains `/`, written as is or as `%2F`. Wajub ids never are.
+- **An id that would reach another endpoint is refused before anything is
+  sent.** `payments.retrieve("pay_1/refunds")` listed the payment's refunds,
+  `customers.delete("cus_1/tax_ids/txi_1")` deleted a tax ID, and
+  `payments.retrieve("")` or `payments.retrieve(".")` listed payments. Every
+  method that takes an id now raises a `ValueError` for an id that is empty,
+  `.` or `..`, or that contains `/`, also written `%2F`. Wajub ids never are.
 - **An API key that cannot be sent is refused, without showing it.** A key
   with a line break, a space or a non-ASCII character, as a bad copy can leave,
   failed with an error that could show the key in full. `Wajub()` now raises a
   `ValueError` that names the problem, not the key, and nothing is sent.
+- **The idempotency key you give protects every create.** Given in the params
+  of `payments.create()`, it was removed from your dict, so creating again with
+  the same dict could create a second payment. Given in the params of
+  `refunds.create()`, `transfers.create()` and the other creates, or as an
+  `Idempotency-Key` header in `RequestOptions(headers=...)`, it was not used, so
+  a create sent again after a timeout could refund or pay out twice. Now
+  `idempotencyKey` or `idempotency_key` in the params of any create,
+  `payments.process()` or `payments.process_split()`, and an `Idempotency-Key`
+  header in any case, count as your key, and your dict is left as it was. A key
+  that is not a string raises a `TypeError` that says where you gave it.
+- **An empty or blank idempotency key counts as no key, wherever you give it.**
+  With `RequestOptions(idempotency_key="")`, a create retried after a network
+  error could be made twice; it is now protected as when you give no key, and a
+  key in the params is used. Spaces around a key are ignored. A key must be one
+  the API accepts: letters, digits and `._:-`, up to 128 characters.
 - **A header you set in `RequestOptions(headers=...)` goes out once, whatever
   the case of its name.** `authorization`, `x-sync`, `accept` or
   `content-type` in lower case went out beside the SDK's own. An
@@ -41,31 +63,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   header counts as `RequestOptions(sync=...)`; a blank one counts as none.
 - **A validation error with a field that has no message** raised `IndexError`
   instead of `InvalidRequestError`. That field is now left out.
-- **`payments.create()` keeps the idempotency key you put in its params.** It
-  removed `idempotencyKey` from your dict, so creating again with the same dict,
-  after a timeout for instance, went out without your key and could create a
-  second payment. Your dict is now left as it was, and `idempotency_key` in the
-  params counts as your key too. A key in the params that differs from the one
-  in `RequestOptions` raises a `ValueError`, where the key in the params used to
-  win silently. A key that is not a string raises a `TypeError` that names the
-  param, instead of the HTTP client's.
-- **The idempotency key in the params of `refunds.create()`, `transfers.create()`
-  and the other creates is used.** It went out in the request body, where the
-  API ignores it, and each call got a new key: creating again after a timeout
-  could refund or pay out twice. `idempotencyKey` or `idempotency_key` in the
-  params of any create, `payments.process()` or `payments.process_split()` now
-  works as on `payments.create()`.
-- **An `Idempotency-Key` you set in `RequestOptions(headers=...)` is sent
-  alone.** A generated key replaced it, so a create you sent again was not
-  recognised as the same one; with the name in lower case, both keys went out.
-  The header now counts as your key, whatever its case, and one that differs
-  from `idempotency_key` or from a key in the params raises a `ValueError`.
-- **An empty or blank idempotency key counts as no key, wherever you pass it.**
-  With `RequestOptions(idempotency_key="")` a create went out without any key,
-  so one the SDK retried after a network error could be made twice; it now gets
-  a generated key, as when you pass none, and a key in the params is used. A
-  key is sent without the spaces around it. It must be one the API accepts:
-  letters, digits and `._:-`, up to 128 characters.
 
 ## [1.2.1] — 2026-10-11
 
