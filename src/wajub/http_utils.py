@@ -6,7 +6,7 @@ import re
 import uuid
 from dataclasses import replace
 from typing import Any
-from urllib.parse import unquote
+from urllib.parse import quote, unquote
 
 from wajub.errors import (
     AuthenticationError,
@@ -56,16 +56,18 @@ def path_id(value: object, name: str = "id") -> str:
 
     The API decodes ``%2F`` before matching routes, so ``pay_1/refunds`` and
     ``pay_1%2Frefunds`` would both reach ``/payments/{id}/refunds``. Wajub ids
-    never contain a slash, and are never empty, ``.`` or ``..``.
+    are strings that never contain a slash, and are never empty, ``.`` or
+    ``..``. The id is then escaped, so that ``?``, ``#`` or ``%`` stay in it.
     """
-    text = str(value)
-    decoded = unquote(text)
+    if not isinstance(value, str):
+        raise TypeError(f"Wajub: {name} must be a string, not {type(value).__name__}")
+    decoded = unquote(value)
     if "/" in decoded or decoded.strip() in ("", ".", ".."):
         raise ValueError(
-            f"Wajub: {name} {text!r} is not a Wajub id; "
+            f"Wajub: {name} {value!r} is not a Wajub id; "
             "an id is never empty and never contains '/'"
         )
-    return text
+    return quote(value, safe="")
 
 
 def create_idempotency_key(prefix: str = "wajub") -> str:

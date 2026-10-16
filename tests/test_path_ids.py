@@ -121,3 +121,48 @@ def test_a_wajub_id_is_sent_in_the_path(call: str, good_id: str) -> None:
 
     assert len(captured) == 1
     assert f"/{good_id}" in captured[0].url.path
+
+
+@pytest.mark.parametrize(
+    "given, sent",
+    [
+        ("cus_1?", "cus_1%3F"),
+        ("cus_1?expand=all", "cus_1%3Fexpand%3Dall"),
+        ("cus_1#txi", "cus_1%23txi"),
+        ("cus 1", "cus%201"),
+        ("cus_1%41", "cus_1%2541"),
+        ("trx.1..2", "trx.1..2"),
+    ],
+)
+@pytest.mark.parametrize("call", sorted(CALLS))
+def test_an_id_is_escaped_so_it_stays_one_segment(call: str, given: str, sent: str) -> None:
+    captured: list[httpx.Request] = []
+    cls, send = CALLS[call]
+
+    send(_resource(cls, captured), given)
+
+    assert len(captured) == 1
+    raw = captured[0].url.raw_path.decode()
+    assert f"/{sent}/" in f"{raw}/"
+    assert "?" not in raw and "#" not in raw
+
+
+def test_a_question_mark_cannot_turn_a_tax_id_deletion_into_a_customer_deletion() -> None:
+    captured: list[httpx.Request] = []
+
+    _resource(CustomersResource, captured).delete_tax_id("cus_1?", "txi_1")
+
+    assert captured[0].method == "DELETE"
+    assert captured[0].url.raw_path == b"/customers/cus_1%3F/tax_ids/txi_1"
+
+
+@pytest.mark.parametrize("bad_id", [None, 42, b"pay_1", ["pay_1"]])
+@pytest.mark.parametrize("call", sorted(CALLS))
+def test_an_id_that_is_not_a_string_is_refused_before_sending(call: str, bad_id: object) -> None:
+    captured: list[httpx.Request] = []
+    cls, send = CALLS[call]
+
+    with pytest.raises(TypeError, match="must be a string"):
+        send(_resource(cls, captured), bad_id)
+
+    assert captured == []
