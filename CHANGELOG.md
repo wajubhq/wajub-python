@@ -58,8 +58,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   the case of its name.** `authorization`, `x-sync`, `accept` or
   `content-type` in lower case went out beside the SDK's own. An
   `Authorization` header replaces the client's key for that request, as it
-  already did when written `Authorization`, and is checked like it: an empty
-  one raises `ValueError`, one that is not a string `TypeError`. An `X-Sync`
+  already did when written `Authorization`, and is checked like it. It can be a
+  string or bytes; an empty one, or one with a line break or another control
+  character, raises `ValueError`, and any other type `TypeError`. An `X-Sync`
   header counts as `RequestOptions(sync=...)`; a blank one counts as none.
 - **A validation error with a field that has no message** raised `IndexError`
   instead of `InvalidRequestError`. That field is now left out.
@@ -67,9 +68,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Security
 - **An id that is not a Wajub id is refused before anything is sent.** If an id
   you pass can come from a URL or a form, a call could act on another resource
-  of your account: `customers.delete("cus_1/tax_ids/txi_1")` deleted a tax ID.
-  An id that is empty, `.` or `..`, or contains `/`, now raises `ValueError`.
-  Wajub ids never take these forms, so valid calls are unchanged.
+  of your account: `customers.delete("cus_1/tax_ids/txi_1")` deleted a tax ID,
+  and an id with `?` or `#` reached another endpoint too. An id that is empty,
+  `.` or `..`, or contains `/`, now raises `ValueError`, and `?` or `#` stay part
+  of the id. Wajub ids never take these forms, so valid calls are unchanged.
 
 ## [1.2.1] — 2026-10-11
 
