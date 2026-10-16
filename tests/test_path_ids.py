@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import uuid
 from collections.abc import Callable
 from typing import Any
 
@@ -175,3 +176,58 @@ def test_an_id_that_is_not_a_string_is_refused_before_sending(call: str, bad_id:
         send(_resource(cls, captured), bad_id)
 
     assert captured == []
+
+
+UPPER_UUID = "8F14E45F-CEEA-467F-A0E6-7A0C5F1B1E2D"
+CANONICAL = "8f14e45f-ceea-467f-a0e6-7a0c5f1b1e2d"
+
+
+@pytest.mark.parametrize("call", sorted(CALLS))
+def test_a_uuid_id_is_sent_in_its_canonical_form(call: str) -> None:
+    captured: list[httpx.Request] = []
+    cls, send = CALLS[call]
+
+    send(_resource(cls, captured), uuid.UUID(UPPER_UUID))
+
+    assert len(captured) == 1
+    assert f"/{CANONICAL}/" in f"{captured[0].url.raw_path.decode()}/"
+
+
+@pytest.mark.parametrize(
+    "cls, send, method, path",
+    [
+        (
+            WebhookEndpointsResource,
+            lambda r, i: r.delete(i),
+            "DELETE",
+            f"/webhooks/{CANONICAL}",
+        ),
+        (
+            CustomersResource,
+            lambda r, i: r.delete_tax_id("cus_1", i),
+            "DELETE",
+            f"/customers/cus_1/tax_ids/{CANONICAL}",
+        ),
+        (
+            TaxResource,
+            lambda r, i: r.retrieve_registration(i),
+            "GET",
+            f"/tax/registrations/{CANONICAL}",
+        ),
+        (
+            ShieldResource,
+            lambda r, i: r.remove_from_blocklist(i),
+            "DELETE",
+            f"/shield/blocklist/{CANONICAL}",
+        ),
+    ],
+)
+def test_the_resources_with_uuid_ids_take_a_uuid(
+    cls: type, send: Call, method: str, path: str
+) -> None:
+    captured: list[httpx.Request] = []
+
+    send(_resource(cls, captured), uuid.UUID(UPPER_UUID))
+
+    assert captured[0].method == method
+    assert captured[0].url.raw_path == path.encode()

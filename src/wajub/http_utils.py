@@ -97,11 +97,14 @@ def path_id(value: object, name: str = "id") -> str:
 
     The API decodes ``%2F`` before matching routes, so ``pay_1/refunds`` and
     ``pay_1%2Frefunds`` would both reach ``/payments/{id}/refunds``. Wajub ids
-    are strings that never contain a slash, and are never empty, ``.`` or
-    ``..``. The id is then escaped, so that ``?``, ``#`` or ``%`` stay in it.
+    are strings, or UUIDs for some resources, that never contain a slash, and
+    are never empty, ``.`` or ``..``. The id is then escaped, so that ``?``,
+    ``#`` or ``%`` stay in it.
     """
+    if isinstance(value, uuid.UUID):
+        value = str(value)
     if not isinstance(value, str):
-        raise TypeError(f"Wajub: {name} must be a string, not {type(value).__name__}")
+        raise TypeError(f"Wajub: {name} must be a string or a UUID, not {type(value).__name__}")
     decoded = unquote(value)
     if "/" in decoded or decoded.strip() in ("", ".", ".."):
         raise ValueError(
