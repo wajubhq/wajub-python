@@ -97,7 +97,8 @@ class BaseClient:
             if name.lower() in ("idempotency-key", "x-sync"):
                 continue
             if name.lower() == "authorization":
-                _set_header(headers, "Authorization", api_key_header(value))
+                key = api_key_header(value, f"the {name!r} header")
+                _set_header(headers, "Authorization", key)
             else:
                 _set_header(headers, name, value)
 

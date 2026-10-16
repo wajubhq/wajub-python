@@ -53,7 +53,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   the case of its name.** `authorization`, `x-sync`, `accept` or
   `content-type` in lower case went out beside the SDK's own. An
   `Authorization` header replaces the client's key for that request, as it
-  already did when written `Authorization`, and is checked like it. An `X-Sync`
+  already did when written `Authorization`, and is checked like it: an empty
+  one raises `ValueError`, one that is not a string `TypeError`. An `X-Sync`
   header counts as `RequestOptions(sync=...)`; a blank one counts as none.
 - **A validation error with a field that has no message** raised `IndexError`
   instead of `InvalidRequestError`. That field is now left out.

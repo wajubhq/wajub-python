@@ -23,28 +23,43 @@ API_URL = "https://api.wajub.com"
 
 def normalize_api_key(raw: str) -> str:
     key = raw.strip()
-    if re.match(r"^bearer\s+", key, re.IGNORECASE):
-        key = re.sub(r"^bearer\s+", "", key, flags=re.IGNORECASE).strip()
+    # "Bearer" alone, once stripped, is a prefix without a key.
+    if re.match(r"^bearer(\s+|$)", key, re.IGNORECASE):
+        key = re.sub(r"^bearer(\s+|$)", "", key, flags=re.IGNORECASE).strip()
     return key
 
 
 # Wajub keys are printable ASCII without spaces: anything else cannot be sent
 # in a header, and the HTTP client's error would quote the key.
-_SENDABLE_API_KEY = re.compile(r"[\x21-\x7e]*")
+_SENDABLE_API_KEY = re.compile(r"[\x21-\x7e]+")
 
 
-def api_key_header(raw: str) -> str:
+def api_key_header(raw: object, where: str = "the API key") -> str:
     """The API key as sent in the Authorization header, refused if unsendable.
 
-    The error never contains the key.
+    ``where`` names the key in the errors, which never contain the key.
     """
+    if isinstance(raw, bytes):
+        # Decoded outside the except block, so that no error carries the key.
+        text = raw.decode("ascii") if raw.isascii() else None
+        if text is None:
+            raise ValueError(_unsendable_api_key(where))
+        raw = text
+    if not isinstance(raw, str):
+        raise TypeError(f"Wajub: {where} must be a string, not {type(raw).__name__}")
     key = normalize_api_key(raw)
+    if not key:
+        raise ValueError(f"Wajub: {where} is empty")
     if not _SENDABLE_API_KEY.fullmatch(key):
-        raise ValueError(
-            "Wajub: the API key contains a character that cannot be sent: a space, "
-            "a line break or a non-ASCII character. Copy it again from the dashboard."
-        )
+        raise ValueError(_unsendable_api_key(where))
     return key
+
+
+def _unsendable_api_key(where: str) -> str:
+    return (
+        f"Wajub: {where} contains a character that cannot be sent: a space, a line "
+        "break or a non-ASCII character. Copy it again from the dashboard."
+    )
 
 
 def default_api_url() -> str:

@@ -8,9 +8,10 @@ from helpers import API_KEY
 from wajub import Wajub
 
 
-def test_requires_api_key() -> None:
+@pytest.mark.parametrize("key", ["", "  ", "Bearer ", "bearer"])
+def test_requires_api_key(key: str) -> None:
     with pytest.raises(ValueError, match="api_key is required"):
-        Wajub(api_key="")
+        Wajub(api_key=key)
 
 
 def test_reads_api_key_from_environment(monkeypatch: pytest.MonkeyPatch) -> None:
