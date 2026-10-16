@@ -30,7 +30,7 @@ dependencies = [
 dev = [
     "hatchling>=1.24",
     "pytest>=8.0",
-    "ruff>=0.9",
+    "ruff==0.17.1",
 ]
 
 [project.urls]
