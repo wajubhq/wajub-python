@@ -45,9 +45,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   header in any case, count as your key, and your dict is left as it was. A key
   that is not a string raises a `TypeError` that says where you gave it.
 - **An empty or blank idempotency key counts as no key, wherever you give it.**
-  With `RequestOptions(idempotency_key="")`, a create retried after a network
-  error could be made twice; it is now protected as when you give no key, and a
-  key in the params is used. Spaces around a key are ignored. A key must be one
+  With `RequestOptions(idempotency_key="")`, after a network error, a create
+  could be made twice; it is now protected as when you give no key, and a key
+  in the params is used. Spaces around a key are ignored. A key must be one
   the API accepts: letters, digits and `._:-`, up to 128 characters.
 - **A header you set in `RequestOptions(headers=...)` goes out once, whatever
   the case of its name.** `authorization`, `x-sync`, `accept` or
