@@ -75,28 +75,55 @@ def create_idempotency_key(prefix: str = "wajub") -> str:
 _IDEMPOTENCY_KEY_PARAMS = ("idempotencyKey", "idempotency_key")
 
 
-def is_idempotency_key_header(name: str) -> bool:
-    return name.lower() == "idempotency-key"
+def _given_values(candidates: dict[str, Any], what: str) -> dict[str, str]:
+    """The values given among the candidates, by where they were given.
+
+    A value is stripped, as the API does, and an empty or blank one counts as
+    none. A value that is not a string raises a TypeError.
+    """
+    values: dict[str, str] = {}
+    for where, value in candidates.items():
+        if value is None:
+            continue
+        if not isinstance(value, str):
+            raise TypeError(
+                f"Wajub: the {what} in {where} must be a string, not {type(value).__name__}"
+            )
+        if value.strip():
+            values[where] = value.strip()
+    return values
 
 
 def _idempotency_keys(candidates: dict[str, Any]) -> dict[str, str]:
-    """The keys given among the candidates, by where they were given.
+    return _given_values(candidates, "idempotency key")
 
-    A key is stripped, as the API does, and an empty or blank one counts as
-    none. A key that is not a string raises a TypeError.
+
+def _headers_named(options: RequestOptions, name: str) -> dict[str, Any]:
+    return {
+        f"the {key!r} header": value
+        for key, value in (options.headers or {}).items()
+        if key.lower() == name.lower()
+    }
+
+
+def request_options_sync(options: RequestOptions | None) -> str | None:
+    """The account to act for, set in the request options, if any.
+
+    It can be given as ``sync`` or as an X-Sync header, in any case; given more
+    than once, it must be the same account. A blank one counts as none.
     """
-    keys: dict[str, str] = {}
-    for where, key in candidates.items():
-        if key is None:
-            continue
-        if not isinstance(key, str):
-            raise TypeError(
-                f"Wajub: the idempotency key in {where} must be a string, "
-                f"not {type(key).__name__}"
-            )
-        if key.strip():
-            keys[where] = key.strip()
-    return keys
+    if options is None:
+        return None
+    given = _given_values(
+        {"RequestOptions(sync=...)": options.sync, **_headers_named(options, "X-Sync")},
+        "X-Sync value",
+    )
+    if len(set(given.values())) > 1:
+        raise ValueError(
+            "Wajub: RequestOptions carries two different X-Sync values "
+            f"({' and '.join(given)}); pass it once, as RequestOptions(sync=...)"
+        )
+    return next(iter(given.values()), None)
 
 
 def request_options_idempotency_key(options: RequestOptions | None) -> str | None:
@@ -111,11 +138,7 @@ def request_options_idempotency_key(options: RequestOptions | None) -> str | Non
     given = _idempotency_keys(
         {
             "RequestOptions(idempotency_key=...)": options.idempotency_key,
-            **{
-                f"the {name!r} header": value
-                for name, value in (options.headers or {}).items()
-                if is_idempotency_key_header(name)
-            },
+            **_headers_named(options, "Idempotency-Key"),
         }
     )
     if len(set(given.values())) > 1:

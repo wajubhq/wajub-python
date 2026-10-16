@@ -33,6 +33,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   with a line break, a space or a non-ASCII character, as a bad copy can leave,
   failed with an error that could show the key in full. `Wajub()` now raises a
   `ValueError` that names the problem, not the key, and nothing is sent.
+- **A header you set in `RequestOptions(headers=...)` goes out once, whatever
+  the case of its name.** `authorization`, `x-sync`, `accept` or
+  `content-type` in lower case went out beside the SDK's own. An
+  `Authorization` header replaces the client's key for that request, as it
+  already did when written `Authorization`, and is checked like it. An `X-Sync`
+  header counts as `RequestOptions(sync=...)`; a blank one counts as none.
 - **A validation error with a field that has no message** raised `IndexError`
   instead of `InvalidRequestError`. That field is now left out.
 - **`payments.create()` keeps the idempotency key you put in its params.** It
