@@ -9,9 +9,12 @@ import httpx
 
 from wajub.errors import ApiConnectionError
 from wajub.http_utils import (
+    api_key_header,
     create_idempotency_key,
     error_from_response,
-    normalize_api_key,
+    header_value,
+    request_options_idempotency_key,
+    request_options_sync,
 )
 from wajub.request_options import RequestOptions
 from wajub.retry import (
@@ -22,6 +25,13 @@ from wajub.retry import (
     parse_retry_after,
     should_retry_status,
 )
+
+
+def _set_header(headers: dict[str, str], name: str, value: str) -> None:
+    """Set a header, replacing any other of the same name in another case."""
+    for existing in [key for key in headers if key.lower() == name.lower()]:
+        del headers[existing]
+    headers[name] = value
 
 
 class BaseClient:
@@ -73,27 +83,48 @@ class BaseClient:
     ) -> dict:
         headers: dict[str, str] = {
             "Accept": "application/json",
-            "Authorization": normalize_api_key(self.api_key),
+            "Authorization": api_key_header(self.api_key),
         }
 
-        if options and options.headers:
-            headers.update(options.headers)
+        # An Idempotency-Key or X-Sync header in options.headers counts as the
+        # option of the same name: sent once, and refused if the two differ.
+        idempotency_key = request_options_idempotency_key(options)
+        sync = request_options_sync(options)
 
-        if options and options.sync:
-            headers["X-Sync"] = options.sync
+        # Any other header of options.headers replaces the client's own, whatever
+        # the case of its name: an Authorization header acts with that key for
+        # this request. It is checked like the client's key, and never quoted.
+        for name, value in (options.headers or {}).items() if options else ():
+            if name.lower() in ("idempotency-key", "x-sync"):
+                continue
+            if name.lower() == "authorization":
+                key = api_key_header(value, f"the {name!r} header")
+                _set_header(headers, "Authorization", key)
+            else:
+                _set_header(headers, name, value)
 
-        idempotency_key = options.idempotency_key if options else None
+        if sync:
+            _set_header(headers, "X-Sync", sync)
+
         if idempotency_key is None and method not in ("GET", "DELETE"):
             idempotency_key = create_idempotency_key(self.idempotency_key_prefix)
 
         if idempotency_key:
-            headers["Idempotency-Key"] = idempotency_key
+            _set_header(headers, "Idempotency-Key", idempotency_key)
+
+        if body is not None:
+            _set_header(headers, "Content-Type", "application/json")
+
+        # Checked before the first attempt: a value that cannot be sent never
+        # reaches the network, nor the retries, nor an error message.
+        for name, value in headers.items():
+            if name != "Authorization":
+                headers[name] = header_value(name, value)
 
         kwargs: dict[str, Any] = {"headers": headers}
         if query:
             kwargs["params"] = {k: v for k, v in query.items() if v is not None}
         if body is not None:
-            headers["Content-Type"] = "application/json"
             kwargs["json"] = body
 
         attempt = 0

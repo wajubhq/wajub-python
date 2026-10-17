@@ -6,7 +6,7 @@ from typing import Any
 
 import httpx
 
-from wajub.http_utils import pick_list, pick_resource
+from wajub.http_utils import idempotency_key_from_params, path_id, pick_list, pick_resource
 from wajub.objects import Customer
 from wajub.request_options import RequestOptions
 from wajub.resources.crud import CrudResource
@@ -22,31 +22,55 @@ class CustomersResource(CrudResource):
         max_network_retries: int | None = None,
     ) -> None:
         super().__init__(
-            api_key, base_url, "customers", "customer", "customers", prefix, client, Customer,
+            api_key,
+            base_url,
+            "customers",
+            "customer",
+            "customers",
+            prefix,
+            client,
+            Customer,
             max_network_retries=max_network_retries,
         )
 
-    def block(self, id: str, params: dict | None = None, options: RequestOptions | None = None) -> dict:
-        return pick_resource(self.post(f"/customers/{id}/block", params, options), "customer")
+    def block(
+        self, id: str, params: dict | None = None, options: RequestOptions | None = None
+    ) -> dict:
+        return pick_resource(
+            self.post(f"/customers/{path_id(id)}/block", params, options), "customer"
+        )
 
     def unblock(self, id: str, options: RequestOptions | None = None) -> dict:
-        return pick_resource(self.post(f"/customers/{id}/unblock", None, options), "customer")
+        return pick_resource(
+            self.post(f"/customers/{path_id(id)}/unblock", None, options), "customer"
+        )
 
     def activate(self, id: str, options: RequestOptions | None = None) -> dict:
-        return pick_resource(self.post(f"/customers/{id}/activate", None, options), "customer")
+        return pick_resource(
+            self.post(f"/customers/{path_id(id)}/activate", None, options), "customer"
+        )
 
     def deactivate(self, id: str, options: RequestOptions | None = None) -> dict:
-        return pick_resource(self.post(f"/customers/{id}/deactivate", None, options), "customer")
+        return pick_resource(
+            self.post(f"/customers/{path_id(id)}/deactivate", None, options), "customer"
+        )
 
     def list_tax_ids(self, customer_id: str) -> tuple[list, dict | None]:
-        return pick_list(self.get(f"/customers/{customer_id}/tax_ids"), "tax_ids")
+        return pick_list(
+            self.get(f"/customers/{path_id(customer_id, 'customer_id')}/tax_ids"), "tax_ids"
+        )
 
     def create_tax_id(
         self, customer_id: str, params: dict[str, Any], options: RequestOptions | None = None
     ) -> dict:
-        return pick_resource(
-            self.post(f"/customers/{customer_id}/tax_ids", params, options), "tax_id"
-        )
+        body, options = idempotency_key_from_params(params, options)
+        path = f"/customers/{path_id(customer_id, 'customer_id')}/tax_ids"
+        return pick_resource(self.post(path, body, options), "tax_id")
 
-    def delete_tax_id(self, customer_id: str, tax_id: str, options: RequestOptions | None = None) -> None:
-        self.request("DELETE", f"/customers/{customer_id}/tax_ids/{tax_id}", options=options)
+    def delete_tax_id(
+        self, customer_id: str, tax_id: str, options: RequestOptions | None = None
+    ) -> None:
+        path = (
+            f"/customers/{path_id(customer_id, 'customer_id')}/tax_ids/{path_id(tax_id, 'tax_id')}"
+        )
+        self.request("DELETE", path, options=options)

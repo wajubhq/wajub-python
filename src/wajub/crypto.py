@@ -1,7 +1,7 @@
 """Cryptographic helpers for webhook verification."""
 
-import hmac
 import hashlib
+import hmac
 
 
 def hmac_sha256(key: str, data: str) -> str:

@@ -8,8 +8,7 @@ from typing import Any
 
 import httpx
 
-from wajub.version import __version__
-from wajub.http_utils import API_URL, normalize_api_key
+from wajub.http_utils import API_URL, api_key_header, normalize_api_key
 from wajub.resources import (
     AccountsResource,
     BalanceResource,
@@ -29,6 +28,7 @@ from wajub.resources import (
     TransfersResource,
     WebhookEndpointsResource,
 )
+from wajub.version import __version__
 from wajub.webhooks import Webhooks
 
 
@@ -66,11 +66,10 @@ class Wajub:
         http_client: httpx.Client | None = None,
         max_network_retries: int | None = None,
     ) -> None:
-        key = normalize_api_key(
-            api_key or os.environ.get("WAJUB_API_KEY") or ""
-        )
-        if not key:
+        raw = api_key or os.environ.get("WAJUB_API_KEY") or ""
+        if isinstance(raw, str) and not normalize_api_key(raw):
             raise ValueError("Wajub: api_key is required")
+        key = api_key_header(raw)
 
         base_url = API_URL
         prefix = idempotency_key_prefix
@@ -82,12 +81,16 @@ class Wajub:
         self.customers = CustomersResource(key, base_url, prefix, self._http, max_network_retries)
         self.refunds = RefundsResource(key, base_url, prefix, self._http, max_network_retries)
         self.transfers = TransfersResource(key, base_url, prefix, self._http, max_network_retries)
-        self.beneficiaries = BeneficiariesResource(key, base_url, prefix, self._http, max_network_retries)
+        self.beneficiaries = BeneficiariesResource(
+            key, base_url, prefix, self._http, max_network_retries
+        )
         self.links = LinksResource(key, base_url, prefix, self._http, max_network_retries)
         self.balance = BalanceResource(key, base_url, prefix, self._http, max_network_retries)
         self.events = EventsResource(key, base_url, prefix, self._http, max_network_retries)
         self.accounts = AccountsResource(key, base_url, prefix, self._http, max_network_retries)
-        self.webhook_endpoints = WebhookEndpointsResource(key, base_url, prefix, self._http, max_network_retries)
+        self.webhook_endpoints = WebhookEndpointsResource(
+            key, base_url, prefix, self._http, max_network_retries
+        )
         self.invoices = InvoicesResource(key, base_url, prefix, self._http, max_network_retries)
         self.disputes = DisputesResource(key, base_url, prefix, self._http, max_network_retries)
         self.identity = IdentityResource(key, base_url, prefix, self._http, max_network_retries)

@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import httpx
+from helpers import API_KEY, make_client
 
 from wajub.http import BaseClient
 from wajub.http_utils import API_URL
-from helpers import API_KEY, make_client
 
 
 def test_retries_on_503_then_succeeds() -> None:
@@ -18,9 +18,7 @@ def test_retries_on_503_then_succeeds() -> None:
             return httpx.Response(503, json={"message": "Unavailable"})
         return httpx.Response(200, json={"ok": True})
 
-    client = BaseClient(
-        API_KEY, API_URL, client=make_client(httpx.MockTransport(handler))
-    )
+    client = BaseClient(API_KEY, API_URL, client=make_client(httpx.MockTransport(handler)))
     result = client.get("/ping")
 
     assert result["ok"] is True

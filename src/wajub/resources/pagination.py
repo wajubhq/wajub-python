@@ -15,9 +15,9 @@ class PagedResult:
     data: list[dict[str, Any]]
     meta: dict[str, Any] | None
     has_more: bool
-    _fetch_page: Callable[[int], "PagedResult"]
+    _fetch_page: Callable[[int], PagedResult]
 
-    def get_next_page(self) -> "PagedResult":
+    def get_next_page(self) -> PagedResult:
         if not self.has_more:
             raise RuntimeError("No more pages available")
         next_page = int(self.meta.get("current_page", 1)) + 1 if self.meta else 2

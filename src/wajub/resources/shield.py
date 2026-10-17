@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from wajub.http import BaseClient
-from wajub.http_utils import pick_list, pick_resource
+from wajub.http_utils import path_id, pick_list, pick_resource
 from wajub.request_options import RequestOptions
 
 
@@ -26,4 +24,4 @@ class ShieldResource(BaseClient):
         return pick_resource(self.post("/shield/blocklist", params, options), "blocklist", "entry")
 
     def remove_from_blocklist(self, id: str, options: RequestOptions | None = None) -> None:
-        self.request("DELETE", f"/shield/blocklist/{id}", options=options)
+        self.request("DELETE", f"/shield/blocklist/{path_id(id)}", options=options)
