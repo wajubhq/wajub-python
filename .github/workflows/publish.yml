@@ -1,0 +1,33 @@
+# Publishes wajub to PyPI when a tag vX.Y.Z is pushed, through PyPI trusted
+# publishing (GitHub's OIDC token): no PyPI token is stored. One-time setup on
+# pypi.org → wajub → Publishing → Add a trusted publisher → GitHub: owner
+# wajubhq, repository wajub-python, workflow publish.yml, environment pypi.
+name: Publish to PyPI
+
+on:
+  push:
+    tags: ['v[0-9]+.[0-9]+.[0-9]+']
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Tag matches pyproject.toml
+        run: |
+          version=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
+          test "v$version" = "$GITHUB_REF_NAME" || { echo "pyproject.toml says $version, tag is $GITHUB_REF_NAME"; exit 1; }
+      # The same checks as CI before anything is released.
+      - run: pip install -e ".[dev]"
+      - run: ruff check src tests
+      - run: ruff format --check src tests
+      - run: pytest -q
+      - run: pip install build && python -m build
+      - uses: pypa/gh-action-pypi-publish@release/v1
